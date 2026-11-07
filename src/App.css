@@ -1,1 +1,819 @@
 
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap");
+
+* {
+  box-sizing: border-box;
+}
+
+.app-layout {
+  min-height: 100vh;
+  display: flex;
+  background: #f5f8f4;
+  color: #24352a;
+  font-family: "DM Sans", sans-serif;
+}
+
+.sidebar {
+  width: 245px;
+  min-height: 100vh;
+  padding: 28px 18px;
+  background: #123d2a;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px 35px;
+}
+
+.brand-icon {
+  width: 45px;
+  height: 45px;
+  display: grid;
+  place-items: center;
+  background: #d8f3dc;
+  border-radius: 14px;
+  font-size: 25px;
+}
+
+.brand h2 {
+  font-family: "Manrope", sans-serif;
+  font-size: 21px;
+  margin: 0;
+}
+
+.brand p {
+  margin: 3px 0 0;
+  color: #b9d3c2;
+  font-size: 12px;
+}
+
+.nav-heading {
+  color: #a7c4b2;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 0 12px;
+  margin-bottom: 12px;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-button {
+  border: none;
+  border-radius: 10px;
+  padding: 13px 14px;
+  color: #d6e6da;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: 0.2s;
+}
+
+.nav-button:hover,
+.nav-button.active {
+  background: #286343;
+  color: white;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+}
+
+.help-card {
+  background: #20543a;
+  border: 1px solid #397252;
+  border-radius: 14px;
+  padding: 17px;
+  margin: 25px 0;
+}
+
+.help-card span {
+  font-size: 25px;
+}
+
+.help-card h4 {
+  margin: 12px 0 6px;
+}
+
+.help-card p {
+  margin: 0;
+  color: #c4ddcb;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.sidebar-footer {
+  text-align: center;
+  color: #a7c4b2;
+  font-size: 11px;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 0 36px 25px;
+}
+
+.topbar {
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e4ebe3;
+  margin-bottom: 28px;
+}
+
+.topbar-label {
+  color: #77917e;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin: 0 0 4px;
+}
+
+.topbar h2 {
+  font-family: "Manrope", sans-serif;
+  font-size: 22px;
+  margin: 0;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.avatar {
+  background: #e1f1e3;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+}
+
+.welcome-banner {
+  min-height: 220px;
+  border-radius: 18px;
+  padding: 35px;
+  background: linear-gradient(110deg, #dff3df, #c2e6ca);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.eyebrow {
+  color: #3b7850;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.welcome-banner h1 {
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(25px, 4vw, 36px);
+  margin: 10px 0;
+  color: #17452c;
+}
+
+.welcome-banner p:not(.eyebrow) {
+  color: #4c6b55;
+  max-width: 480px;
+  line-height: 1.6;
+}
+
+.banner-illustration {
+  font-size: 100px;
+  padding: 0 30px;
+}
+
+.name-input {
+  max-width: 230px;
+  background: #ffffffc9 !important;
+  border: 1px solid #b7d6bd !important;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 30px 0 18px;
+}
+
+.section-heading h2,
+.panel h3 {
+  font-family: "Manrope", sans-serif;
+  margin: 0;
+  font-size: 18px;
+}
+
+.section-heading p,
+.panel-heading p {
+  color: #7c8d80;
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 17px;
+  margin-bottom: 22px;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #e8eee7;
+  border-radius: 14px;
+  padding: 21px;
+  box-shadow: 0 3px 12px #1e49220a;
+}
+
+.stat-card p {
+  color: #718174;
+  font-size: 12px;
+  margin: 13px 0 7px;
+}
+
+.stat-card h2 {
+  font-family: "Manrope", sans-serif;
+  font-size: 24px;
+  margin: 0 0 7px;
+  color: #214c31;
+}
+
+.stat-card span {
+  color: #849187;
+  font-size: 11px;
+}
+
+.stat-icon {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  font-size: 19px;
+}
+
+.green { background: #e1f4e4; }
+.blue { background: #e2f0fa; }
+.yellow { background: #fff3d7; }
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 18px;
+}
+
+.panel {
+  background: white;
+  border: 1px solid #e8eee7;
+  border-radius: 15px;
+  padding: 23px;
+  margin-bottom: 18px;
+  box-shadow: 0 3px 12px #1e492208;
+}
+
+.panel-heading {
+  margin-bottom: 20px;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.quick-actions button {
+  min-height: 130px;
+  background: #f7faf6;
+  border: 1px solid #e6eee5;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  color: #294d34;
+}
+
+.quick-actions button:hover {
+  border-color: #7cb58a;
+  background: #f0f8f0;
+}
+
+.quick-actions button span {
+  font-size: 23px;
+}
+
+.quick-actions button strong {
+  font-size: 12px;
+}
+
+.quick-actions button small {
+  font-size: 10px;
+  color: #849187;
+  line-height: 1.5;
+}
+
+.tip-panel {
+  background: #f0f7ee;
+  border-color: #e0eddd;
+}
+
+.tip-icon {
+  font-size: 26px;
+  margin-bottom: 10px;
+}
+
+.tip-panel p {
+  color: #607363;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.text-button {
+  color: #277142;
+  background: transparent;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 5px 0;
+}
+
+.notice {
+  background: #edf6ed;
+  border-left: 4px solid #4b9a5c;
+  color: #526d56;
+  border-radius: 7px;
+  padding: 14px 17px;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 18px 0;
+}
+
+.notice.warning {
+  background: #fff8e9;
+  border-left-color: #e0a536;
+  color: #79643c;
+}
+
+.page-intro {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 10px 0 25px;
+}
+
+.page-intro h1 {
+  font-family: "Manrope", sans-serif;
+  font-size: 25px;
+  margin: 0 0 5px;
+}
+
+.page-intro p {
+  color: #7a8a7d;
+  margin: 0;
+  font-size: 13px;
+}
+
+.large-icon {
+  width: 55px;
+  height: 55px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: #e2f2e3;
+  font-size: 27px;
+}
+
+.calculator-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.muted {
+  color: #7c8d80;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+label {
+  display: block;
+  color: #435a48;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 17px 0 7px;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 43px;
+  border: 1px solid #dce6dc;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fbfdfb;
+  color: #2d4633;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: #4a9a5c;
+  box-shadow: 0 0 0 3px #4a9a5c18;
+}
+
+.primary-button {
+  background: #287447;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 19px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.primary-button:hover {
+  background: #1b5b36;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.full-button {
+  width: 100%;
+  margin-top: 22px;
+}
+
+.result-panel {
+  background: #f0f8ef;
+  border-color: #dcebdc;
+}
+
+.result-label {
+  color: #64816a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.water-result {
+  font-family: "Manrope", sans-serif;
+  color: #1d6b3b;
+  font-size: 35px;
+  font-weight: 800;
+  margin: 14px 0 3px;
+}
+
+.water-result span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.calculation-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid #dce9dc;
+  font-size: 12px;
+}
+
+.calculation-row span {
+  color: #718174;
+}
+
+.calculation-row strong {
+  text-align: right;
+  color: #34543b;
+}
+
+.formula-box {
+  background: white;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 18px;
+  color: #47614b;
+  font-size: 12px;
+}
+
+.formula-box p {
+  margin: 9px 0 0;
+}
+
+.weather-search {
+  max-width: 650px;
+}
+
+.search-row {
+  display: flex;
+  gap: 10px;
+}
+
+.search-row input {
+  flex: 1;
+}
+
+.error-text {
+  color: #bb3939;
+  font-size: 12px;
+  margin-bottom: 0;
+}
+
+.weather-current {
+  background: linear-gradient(110deg, #e5f4e7, #f1f8e9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weather-current h2 {
+  font-family: "Manrope", sans-serif;
+  font-size: 21px;
+}
+
+.temperature {
+  font-size: 42px;
+  font-weight: 800;
+  color: #256b3e;
+  margin: 10px 0;
+}
+
+.weather-emoji {
+  font-size: 75px;
+  padding: 20px;
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.forecast-day {
+  background: #f5f9f4;
+  border: 1px solid #e7eee5;
+  border-radius: 10px;
+  padding: 15px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.forecast-day span {
+  font-size: 25px;
+}
+
+.forecast-day small {
+  color: #758578;
+  line-height: 1.5;
+}
+
+.source-note {
+  font-size: 11px;
+  color: #849187;
+}
+
+.empty-state {
+  background: white;
+  border: 1px dashed #cbdcca;
+  border-radius: 15px;
+  padding: 45px 20px;
+  text-align: center;
+  color: #748576;
+}
+
+.empty-state span {
+  font-size: 40px;
+}
+
+.empty-state h3 {
+  color: #34543b;
+}
+
+.upload-panel {
+  text-align: center;
+  padding: 35px;
+}
+
+.upload-icon {
+  font-size: 45px;
+}
+
+.upload-panel h2 {
+  font-family: "Manrope", sans-serif;
+  font-size: 21px;
+}
+
+.upload-panel > p {
+  color: #7c8d80;
+  font-size: 13px;
+}
+
+.upload-button {
+  display: inline-block;
+  background: #287447;
+  color: white;
+  padding: 12px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 15px 0;
+}
+
+.image-preview {
+  margin: 20px auto;
+  max-width: 350px;
+}
+
+.image-preview img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid #dce6dc;
+}
+
+.image-preview p {
+  color: #39804b;
+  font-size: 12px;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.steps-grid div {
+  background: #f5f9f4;
+  border-radius: 10px;
+  padding: 15px;
+}
+
+.steps-grid span {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  background: #dcefe0;
+  color: #28633a;
+  border-radius: 50%;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.steps-grid strong {
+  font-size: 13px;
+}
+
+.steps-grid p {
+  color: #7c8d80;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.footer {
+  text-align: center;
+  padding: 30px 0 10px;
+  color: #8a998c;
+  font-size: 11px;
+}
+
+@media (max-width: 1000px) {
+  .main-content {
+    padding: 0 22px 20px;
+  }
+
+  .sidebar {
+    width: 210px;
+  }
+
+  .content-grid,
+  .calculator-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .app-layout {
+    display: block;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    padding: 15px;
+  }
+
+  .brand {
+    padding: 0 5px 15px;
+  }
+
+  .nav-heading,
+  .sidebar-bottom {
+    display: none;
+  }
+
+  .sidebar nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+
+  .nav-button {
+    white-space: nowrap;
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  .main-content {
+    padding: 0 15px 20px;
+  }
+
+  .topbar {
+    min-height: 75px;
+  }
+
+  .welcome-banner {
+    padding: 23px;
+  }
+
+  .banner-illustration {
+    font-size: 55px;
+    padding: 0;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions button {
+    min-height: auto;
+  }
+
+  .forecast-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-row {
+    flex-direction: column;
+  }
+
+  .weather-emoji {
+    font-size: 45px;
+    padding: 5px;
+  }
+
+  .page-intro h1 {
+    font-size: 20px;
+  }
+
+  .water-result {
+    font-size: 29px;
+  }
+}
+
