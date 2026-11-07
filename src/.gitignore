@@ -1,0 +1,32 @@
+
+# Frontend dependencies
+node_modules/
+
+# Backend virtual environment
+backend/.venv/
+backend/venv/
+
+# Environment variables and API keys
+.env
+.env.*
+backend/.env
+backend/.env.*
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded temporary files
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Build files
+dist/
+
+# IDE
+.vscode/
