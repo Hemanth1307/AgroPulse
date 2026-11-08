@@ -1,68 +1,238 @@
 
 .login-page {
   min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #ffffff;
+}
+
+.login-visual {
+  background: linear-gradient(145deg, #123d2b, #286747);
+  color: white;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #e8f5e9, #a5d6a7);
-  padding: 20px;
+  justify-content: center;
+  padding: 55px;
+  overflow: hidden;
+}
+
+.visual-content {
+  max-width: 480px;
+  width: 100%;
+}
+
+.brand-mark,
+.mobile-brand {
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.visual-content h1 {
+  font-size: clamp(40px, 5vw, 58px);
+  line-height: 1.12;
+  margin: 65px 0 20px;
+}
+
+.visual-content p {
+  color: #d2e6d8;
+  font-size: 16px;
+  line-height: 1.8;
+  max-width: 410px;
+}
+
+.visual-illustration {
+  font-size: 150px;
+  text-align: center;
+  margin: 35px 0 10px;
+  filter: drop-shadow(0 12px 15px rgba(0, 0, 0, 0.15));
+}
+
+.visual-content > span {
+  color: #c5dfce;
+  font-size: 13px;
+}
+
+.login-form-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 35px 25px;
 }
 
 .login-card {
   width: 100%;
-  max-width: 400px;
-  background: white;
-  padding: 35px;
-  border-radius: 18px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  max-width: 420px;
 }
 
-.login-card h1 {
-  color: #238443;
-  text-align: center;
+.mobile-brand {
+  display: none;
+  color: #1b5735;
+  margin-bottom: 35px;
+}
+
+.login-eyebrow {
+  color: #4d9364;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
 }
 
 .login-card h2 {
-  margin-top: 30px;
-  color: #245c35;
+  color: #183e2a;
+  font-size: 34px;
+  margin: 12px 0 8px;
 }
 
-.login-card p {
-  color: #666;
-  text-align: center;
+.login-subtitle {
+  color: #7a887e;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+
+.google-login {
+  width: 100%;
+  height: 49px;
+  border: 1px solid #dce4dc;
+  background: white;
+  color: #37443a;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: background 0.2s;
+}
+
+.google-login:hover {
+  background: #f7faf7;
+}
+
+.google-icon {
+  font-size: 20px;
+  font-weight: 800;
+  color: #4285f4;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 25px 0;
+  color: #99a39b;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: #e6ebe6;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
 }
 
 .login-card label {
-  display: block;
-  margin-top: 18px;
+  color: #344c3b;
+  font-size: 13px;
   font-weight: 600;
+  margin: 0 0 8px;
 }
 
 .login-card input {
   width: 100%;
-  padding: 12px;
-  margin-top: 8px;
-  border: 1px solid #ccc;
+  height: 47px;
+  border: 1px solid #dce5dc;
   border-radius: 8px;
-  box-sizing: border-box;
+  padding: 0 13px;
+  margin-bottom: 19px;
+  outline: none;
+  color: #243d2d;
+  background: white;
+  font-size: 14px;
 }
 
-.login-card button {
-  width: 100%;
-  padding: 13px;
-  margin-top: 25px;
-  background: #238443;
-  color: white;
-  border: none;
-  border-radius: 8px;
+.login-card input:focus {
+  border-color: #4d9364;
+  box-shadow: 0 0 0 3px rgba(77, 147, 100, 0.1);
+}
+
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  padding-right: 65px;
+}
+
+.show-password {
+  position: absolute;
+  right: 12px;
+  top: 13px;
+  border: 0;
+  background: transparent;
+  color: #4b815b;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.login-card button:hover {
-  background: #17632e;
+.login-submit {
+  width: 100%;
+  height: 49px;
+  background: #24633e;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 5px;
+  transition: background 0.2s;
+}
+
+.login-submit:hover {
+  background: #174b2e;
+}
+
+.login-note {
+  text-align: center;
+  color: #6d806f;
+  font-size: 12px;
+  margin-top: 18px;
 }
 
 .login-footer {
-  margin-top: 25px;
+  text-align: center;
+  color: #a0aaa2;
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: 30px;
+}
+
+@media (max-width: 750px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .login-visual {
+    display: none;
+  }
+
+  .login-form-area {
+    min-height: 100vh;
+    padding: 30px 22px;
+  }
+
+  .mobile-brand {
+    display: block;
+  }
 }
