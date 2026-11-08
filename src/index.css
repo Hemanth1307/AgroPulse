@@ -1,31 +1,40 @@
 
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
 * {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
 }
 
 html {
-  min-width: 320px;
   scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
+  font-family: "Inter", sans-serif;
+  background: #f5f8f4;
+  color: #24382a;
   min-width: 320px;
   min-height: 100vh;
-  font-family: "DM Sans", sans-serif;
-  background: #f5f8f4;
 }
 
 button,
 input,
+textarea,
 select {
-  font-family: inherit;
+  font: inherit;
 }
 
 button {
-  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
 }
 
-img {
-  max-width: 100%;
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: #c8e5ce;
+  color: #123d2b;
 }
