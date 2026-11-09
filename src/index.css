@@ -1,5 +1,56 @@
+/* =====================================
+   GOOGLE FONTS
+===================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+/* =====================================
+   TAILWIND CSS V3
+===================================== */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================
+   AGROPULSE PREMIUM DESIGN SYSTEM
+===================================== */
+
+:root {
+  font-family: 'DM Sans', sans-serif;
+
+  --bg-primary: #0a120e;
+  --bg-secondary: #101b14;
+  --bg-tertiary: #15251a;
+
+  --card-bg: #14231a;
+  --card-hover: #1a2d20;
+
+  --green-primary: #a3e635;
+  --green-secondary: #84cc16;
+  --green-dark: #365c25;
+
+  --text-primary: #f3f7f1;
+  --text-secondary: #a4b3a6;
+  --text-muted: #718174;
+
+  --border-color: rgba(190, 220, 190, 0.10);
+
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --info: #60a5fa;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+
+  --shadow-card: 0 12px 35px rgba(0, 0, 0, 0.2);
+}
+
+/* =====================================
+   RESET
+===================================== */
 
 * {
   margin: 0;
@@ -12,10 +63,15 @@ html {
 }
 
 body {
-  font-family: "Inter", sans-serif;
-  background: #f5f8f4;
-  color: #24382a;
   min-width: 320px;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+#root {
   min-height: 100vh;
 }
 
@@ -30,11 +86,285 @@ button {
   cursor: pointer;
 }
 
-#root {
-  min-height: 100vh;
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-::selection {
-  background: #c8e5ce;
-  color: #123d2b;
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* =====================================
+   TYPOGRAPHY
+===================================== */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Manrope', sans-serif;
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+h1 {
+  font-size: clamp(25px, 3vw, 34px);
+}
+
+h2 {
+  font-size: 23px;
+}
+
+h3 {
+  font-size: 18px;
+}
+
+p {
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+/* =====================================
+   SCROLLBAR
+===================================== */
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #354b39;
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #718c4b;
+}
+
+/* =====================================
+   PREMIUM CARDS
+===================================== */
+
+.ap-card {
+  background: linear-gradient(145deg,
+      #192b20,
+      #111e16);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow-card);
+  transition: all 0.25s ease;
+}
+
+.ap-card:hover {
+  border-color: rgba(163, 230, 53, 0.25);
+  transform: translateY(-2px);
+}
+
+/* =====================================
+   BUTTONS
+===================================== */
+
+.ap-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 19px;
+  border: none;
+  border-radius: 12px;
+  background: var(--green-primary);
+  color: #17230e;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.ap-button:hover {
+  background: #bef264;
+  transform: translateY(-1px);
+}
+
+.ap-button-secondary {
+  background: #20372a;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.ap-button-secondary:hover {
+  background: #2a4934;
+}
+
+/* =====================================
+   STATUS BADGES
+===================================== */
+
+.ap-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ap-badge-success {
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--success);
+}
+
+.ap-badge-warning {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--warning);
+}
+
+.ap-badge-danger {
+  background: rgba(251, 113, 133, 0.12);
+  color: var(--danger);
+}
+
+.ap-badge-info {
+  background: rgba(96, 165, 250, 0.12);
+  color: var(--info);
+}
+
+/* =====================================
+   INPUTS
+===================================== */
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 11px;
+  background: #101c15;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--green-primary);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* =====================================
+   COMMON LAYOUT
+===================================== */
+
+.ap-container {
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.ap-section {
+  margin-bottom: 28px;
+}
+
+.ap-section-title {
+  margin-bottom: 6px;
+  font-size: 21px;
+}
+
+.ap-section-description {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* =====================================
+   GRID SYSTEM
+===================================== */
+
+.ap-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.ap-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.ap-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* =====================================
+   ANIMATIONS
+===================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ap-fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* =====================================
+   RESPONSIVE DESIGN
+===================================== */
+
+@media (max-width: 1100px) {
+  .ap-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ap-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .ap-container {
+    padding: 16px;
+  }
+
+  .ap-grid-2,
+  .ap-grid-3,
+  .ap-grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .ap-card {
+    padding: 17px;
+    border-radius: var(--radius-md);
+  }
 }
