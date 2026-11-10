@@ -4,13 +4,14 @@ DB_NAME = "agropulse.db"
 
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=15)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db():
     conn = get_db_connection()
+    conn.execute("PRAGMA foreign_keys = ON")
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS farms (
@@ -36,6 +37,9 @@ def init_db():
             emitter_count INTEGER DEFAULT 100,
             efficiency REAL DEFAULT 0.9,
             pump_on INTEGER DEFAULT 0,
+            cycle_started_at REAL,
+            cycle_duration_seconds INTEGER DEFAULT 0,
+            cycle_mode TEXT DEFAULT 'idle',
             FOREIGN KEY (farm_id) REFERENCES farms(id)
         )
     """)
@@ -50,6 +54,29 @@ def init_db():
             FOREIGN KEY (farm_id) REFERENCES farms(id)
         )
     """)
+
+    # Add cycle columns to older databases if they are missing.
+    columns = {
+        row[1]
+        for row in conn.execute(
+            "PRAGMA table_info(irrigation_settings)"
+        )
+    }
+
+    migrations = {
+        "cycle_started_at":
+            "ALTER TABLE irrigation_settings ADD COLUMN cycle_started_at REAL",
+
+        "cycle_duration_seconds":
+            "ALTER TABLE irrigation_settings ADD COLUMN cycle_duration_seconds INTEGER DEFAULT 0",
+
+        "cycle_mode":
+            "ALTER TABLE irrigation_settings ADD COLUMN cycle_mode TEXT DEFAULT 'idle'",
+    }
+
+    for name, sql in migrations.items():
+        if name not in columns:
+            conn.execute(sql)
 
     conn.commit()
     conn.close()

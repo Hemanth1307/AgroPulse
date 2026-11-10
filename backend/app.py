@@ -1,6 +1,8 @@
 
 import io
 import json
+import threading
+import time
 from html import escape
 
 import requests
@@ -20,6 +22,7 @@ from reportlab.platypus import (
 from integrations.gemini_ai import (
     analyze_crop_image,
     ask_farmer_question,
+    extract_npk_from_soil_report
 )
 from integrations.sentinel2 import get_sentinel2_data
 from integrations.nasa_smap import get_smap_data
@@ -34,8 +37,11 @@ from functions import (
     record_irrigation,
     get_irrigation_history,
     set_pump_status,
+    start_irrigation_cycle,
+    stop_irrigation_cycle,
+    get_cycle_status,
+    stop_expired_cycles,
 )
-
 
 # --------------------------------------------------
 # APPLICATION SETUP
@@ -62,6 +68,79 @@ def health_check():
         "success": True,
         "message": "AgroPulse backend is running",
     }), 200
+
+
+# --------------------------------------------------
+# LOCATION GEOCODING (OpenStreetMap Nominatim)
+# --------------------------------------------------
+
+# Nominatim's public service requires a descriptive User-Agent, caching,
+# and no more than one request per second. This in-memory cache/rate limiter
+# is suitable for a single-process student prototype.
+_NOMINATIM_CACHE = {}
+_NOMINATIM_LOCK = threading.Lock()
+_NOMINATIM_LAST_REQUEST = 0.0
+
+
+@app.route("/api/geocode", methods=["GET"])
+def geocode_location():
+    global _NOMINATIM_LAST_REQUEST
+
+    query = (request.args.get("q") or "").strip()
+    if len(query) < 3:
+        return jsonify({
+            "success": False,
+            "message": "Enter at least 3 characters for the farm location.",
+        }), 400
+
+    cache_key = query.casefold()
+    if cache_key in _NOMINATIM_CACHE:
+        return jsonify({"success": True, "results": _NOMINATIM_CACHE[cache_key]}), 200
+
+    try:
+        # Serialize requests and respect the public Nominatim 1 request/second limit.
+        with _NOMINATIM_LOCK:
+            elapsed = time.monotonic() - _NOMINATIM_LAST_REQUEST
+            if elapsed < 1.0:
+                time.sleep(1.0 - elapsed)
+
+            response = requests.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={"q": query, "format": "jsonv2", "limit": 5, "addressdetails": 1},
+                headers={"User-Agent": "AgroPulseAI/1.0 (farm-location-geocoding)"},
+                timeout=15,
+            )
+            _NOMINATIM_LAST_REQUEST = time.monotonic()
+
+        response.raise_for_status()
+        places = response.json()
+        results = []
+        for place in places:
+            try:
+                results.append({
+                    "latitude": float(place["lat"]),
+                    "longitude": float(place["lon"]),
+                    "display_name": place.get("display_name", query),
+                    "type": place.get("type", ""),
+                })
+            except (KeyError, TypeError, ValueError):
+                continue
+
+        _NOMINATIM_CACHE[cache_key] = results
+        return jsonify({"success": True, "results": results}), 200
+
+    except requests.RequestException:
+        app.logger.exception("Location geocoding provider request failed")
+        return jsonify({
+            "success": False,
+            "message": "Location search is temporarily unavailable. Please try again.",
+        }), 502
+    except Exception:
+        app.logger.exception("Location geocoding failed")
+        return jsonify({
+            "success": False,
+            "message": "Unable to find coordinates for this location.",
+        }), 500
 
 
 # --------------------------------------------------
@@ -238,93 +317,48 @@ def weather():
 def irrigation_status(farm_id):
     try:
         settings = get_irrigation_settings(farm_id)
-
         if not settings:
-            return jsonify({
-                "success": False,
-                "message": "Farm not found.",
-            }), 404
+            return jsonify({"success": False, "message": "Farm not found."}), 404
 
-        farm = next(
-            (
-                f for f in get_all_farms()
-                if f["id"] == farm_id
-            ),
-            None,
-        )
-
+        farm = next((f for f in get_all_farms() if f["id"] == farm_id), None)
         response = {
             "success": True,
             "settings": settings,
             "history": get_irrigation_history(farm_id),
-            "pump_on": bool(settings["pump_on"]),
+            "pump_on": bool(settings.get("pump_on", 0)),
             "calculation_available": False,
         }
 
-        if (
-            not farm
-            or farm["latitude"] is None
-            or farm["longitude"] is None
-        ):
-            response["calculation_message"] = (
-                "Farm coordinates are required."
-            )
+        if not farm or farm.get("latitude") is None or farm.get("longitude") is None:
+            response["calculation_message"] = "Farm coordinates are required."
             return jsonify(response), 200
 
-        weather_data = get_weather_data(
-            farm["latitude"],
-            farm["longitude"],
-        )
-
+        weather_data = get_weather_data(farm["latitude"], farm["longitude"])
         daily = weather_data.get("daily", {})
-
-        et0 = (
-            daily.get("et0_fao_evapotranspiration") or [None]
-        )[0]
-
-        rainfall = (
-            daily.get("precipitation_sum") or [0]
-        )[0]
-
-        rain_probability = (
-            daily.get("precipitation_probability_max") or [None]
-        )[0]
+        et0 = (daily.get("et0_fao_evapotranspiration") or [None])[0]
+        rainfall = (daily.get("precipitation_sum") or [0])[0]
+        rain_probability = (daily.get("precipitation_probability_max") or [None])[0]
 
         if et0 is None:
             raise ValueError("ET0 data is unavailable.")
 
         et0 = float(et0)
         rainfall = float(rainfall or 0)
-
         kc = float(settings["kc"])
         etc = et0 * kc
-
-        # Simplified daily water deficit.
         water_deficit = max(0, etc - rainfall)
-
-        # One millimetre over one square metre equals one litre.
         farm_area_m2 = float(farm["area_acres"]) * 4046.86
         water_litres = water_deficit * farm_area_m2
-
         efficiency = float(settings["efficiency"])
-
-        if efficiency <= 0:
-            raise ValueError("Irrigation efficiency must be positive.")
+        if not 0 < efficiency <= 1:
+            raise ValueError("Irrigation efficiency must be between 0 and 1.")
 
         required_litres = water_litres / efficiency
-
-        total_flow = (
-            float(settings["emitter_flow"])
-            * int(settings["emitter_count"])
-        )
-
+        total_flow = float(settings["emitter_flow"]) * int(settings["emitter_count"])
         if total_flow <= 0:
             raise ValueError("Total irrigation flow must be positive.")
 
-        runtime_minutes = (
-            required_litres / total_flow
-        ) * 60
-
+        runtime_minutes = (required_litres / total_flow) * 60
         response.update({
             "calculation_available": True,
             "et0": round(et0, 2),
@@ -337,39 +371,21 @@ def irrigation_status(farm_id):
             "rain_probability": rain_probability,
             "root_zone_moisture": settings["root_zone_moisture"],
         })
-
         return jsonify(response), 200
 
     except requests.RequestException:
         app.logger.exception("Irrigation weather request failed")
-
-        return jsonify({
-            "success": False,
-            "message": "Unable to retrieve irrigation weather data.",
-        }), 502
-
+        return jsonify({"success": False, "message": "Unable to retrieve irrigation weather data."}), 502
     except Exception:
         app.logger.exception("Irrigation status failed")
+        return jsonify({"success": False, "message": "Unable to calculate irrigation status."}), 500
 
-        return jsonify({
-            "success": False,
-            "message": "Unable to calculate irrigation status.",
-        }), 500
-
-
-# --------------------------------------------------
-# UPDATE IRRIGATION SETTINGS
-# --------------------------------------------------
 
 @app.route("/api/irrigation/<int:farm_id>/settings", methods=["PUT"])
 def irrigation_settings(farm_id):
     data = request.get_json(silent=True)
-
     if not isinstance(data, dict):
-        return jsonify({
-            "success": False,
-            "message": "Valid JSON request data is required.",
-        }), 400
+        return jsonify({"success": False, "message": "Valid JSON request data is required."}), 400
 
     try:
         kc = float(data.get("kc", 1.15))
@@ -380,57 +396,47 @@ def irrigation_settings(farm_id):
 
         if not 0 < kc <= 2:
             raise ValueError
-
         if not 0 <= moisture <= 100:
             raise ValueError
-
         if emitter_flow <= 0 or emitter_count <= 0:
             raise ValueError
-
         if not 0 < efficiency <= 1:
             raise ValueError
-
     except (ValueError, TypeError):
-        return jsonify({
-            "success": False,
-            "message": "Invalid irrigation settings.",
-        }), 400
+        return jsonify({"success": False, "message": "Invalid irrigation settings."}), 400
 
     try:
         settings = get_irrigation_settings(farm_id)
-
         if not settings:
-            return jsonify({
-                "success": False,
-                "message": "Farm not found.",
-            }), 404
+            return jsonify({"success": False, "message": "Farm not found."}), 404
 
         update_irrigation_settings(
-            farm_id,
-            kc,
-            moisture,
-            emitter_flow,
-            emitter_count,
-            efficiency,
+            farm_id, kc, moisture, emitter_flow, emitter_count, efficiency
         )
+        return jsonify({"success": True, "message": "Irrigation settings updated."}), 200
+    except Exception:
+        app.logger.exception("Failed to update irrigation settings")
+        return jsonify({"success": False, "message": "Unable to update irrigation settings."}), 500
+
+
+@app.route("/api/irrigation/<int:farm_id>/cycle", methods=["GET"])
+def irrigation_cycle_status(farm_id):
+    try:
+        cycle = get_cycle_status(farm_id)
+        if cycle is None:
+            return jsonify({"success": False, "message": "Farm not found."}), 404
 
         return jsonify({
             "success": True,
-            "message": "Irrigation settings updated.",
+            "cycle": cycle,
+            "pump_on": bool(cycle["pump_on"]),
+            "remaining_seconds": cycle["remaining_seconds"],
+            "cycle_mode": cycle["cycle_mode"],
         }), 200
-
     except Exception:
-        app.logger.exception("Failed to update irrigation settings")
+        app.logger.exception("Failed to retrieve irrigation cycle status")
+        return jsonify({"success": False, "message": "Unable to retrieve irrigation cycle status."}), 500
 
-        return jsonify({
-            "success": False,
-            "message": "Unable to update irrigation settings.",
-        }), 500
-
-
-# --------------------------------------------------
-# IRRIGATION CONTROL
-# --------------------------------------------------
 
 @app.route("/api/irrigation/<int:farm_id>/control", methods=["POST"])
 def irrigation_control(farm_id):
@@ -438,107 +444,55 @@ def irrigation_control(farm_id):
     action = data.get("action")
 
     if action not in ["ON", "OFF"]:
-        return jsonify({
-            "success": False,
-            "message": "Action must be ON or OFF.",
-        }), 400
+        return jsonify({"success": False, "message": "Action must be ON or OFF."}), 400
 
     try:
         settings = get_irrigation_settings(farm_id)
-
         if not settings:
-            return jsonify({
-                "success": False,
-                "message": "Farm not found.",
-            }), 404
+            return jsonify({"success": False, "message": "Farm not found."}), 404
 
-        # This is a simulated pump, not a physical pump.
         if action == "OFF":
-            set_pump_status(farm_id, False)
-
-            record_irrigation(
-                farm_id,
-                "OFF",
-                "Pump switched off by user",
+            stop_irrigation_cycle(
+                farm_id, "Virtual pump stopped manually by user"
             )
-
             return jsonify({
                 "success": True,
                 "pump_on": False,
+                "remaining_seconds": 0,
                 "message": "Virtual pump switched off.",
             }), 200
 
-        farm = next(
-            (
-                f for f in get_all_farms()
-                if f["id"] == farm_id
-            ),
-            None,
-        )
+        farm = next((f for f in get_all_farms() if f["id"] == farm_id), None)
+        if not farm or farm.get("latitude") is None or farm.get("longitude") is None:
+            return jsonify({"success": False, "message": "Farm coordinates are required."}), 400
 
-        if (
-            not farm
-            or farm["latitude"] is None
-            or farm["longitude"] is None
-        ):
-            return jsonify({
-                "success": False,
-                "message": "Farm coordinates are required.",
-            }), 400
-
-        weather_data = get_weather_data(
-            farm["latitude"],
-            farm["longitude"],
-        )
-
+        weather_data = get_weather_data(farm["latitude"], farm["longitude"])
         daily = weather_data.get("daily", {})
-
-        rain_probability = (
-            daily.get("precipitation_probability_max") or [None]
-        )[0]
-
-        et0 = (
-            daily.get("et0_fao_evapotranspiration") or [None]
-        )[0]
-
-        rainfall = (
-            daily.get("precipitation_sum") or [0]
-        )[0]
+        rain_probability = (daily.get("precipitation_probability_max") or [None])[0]
+        et0 = (daily.get("et0_fao_evapotranspiration") or [None])[0]
+        rainfall = (daily.get("precipitation_sum") or [0])[0]
 
         if rain_probability is None or et0 is None:
-            raise ValueError(
-                "Required weather forecast data is missing."
-            )
+            raise ValueError("Required weather forecast data is missing.")
 
         rain_probability = float(rain_probability)
         et0 = float(et0)
         rainfall = float(rainfall or 0)
-
         moisture = float(settings["root_zone_moisture"])
         kc = float(settings["kc"])
         field_capacity = float(settings["field_capacity"])
 
         if rain_probability > 65:
-            reason = (
-                "Irrigation blocked: rain probability exceeds 65%."
-            )
+            reason = "Irrigation blocked: rain probability exceeds 65%."
         elif moisture > field_capacity:
-            reason = (
-                "Irrigation blocked: soil moisture exceeds "
-                "field capacity."
-            )
+            reason = "Irrigation blocked: soil moisture exceeds field capacity."
         else:
             reason = None
 
         if reason:
-            set_pump_status(farm_id, False)
-
-            record_irrigation(
-                farm_id,
-                "BLOCKED",
-                reason,
-            )
-
+            # Clear any previous cycle without adding a misleading OFF history row.
+            stop_irrigation_cycle(farm_id, reason, record_history=False)
+            record_irrigation(farm_id, "BLOCKED", reason)
             return jsonify({
                 "success": False,
                 "pump_on": False,
@@ -550,63 +504,64 @@ def irrigation_control(farm_id):
 
         etc = et0 * kc
         water_deficit = max(0, etc - rainfall)
-
         farm_area_m2 = float(farm["area_acres"]) * 4046.86
         water_litres = water_deficit * farm_area_m2
-
         efficiency = float(settings["efficiency"])
-
-        if efficiency <= 0:
-            raise ValueError("Irrigation efficiency must be positive.")
+        if not 0 < efficiency <= 1:
+            raise ValueError("Irrigation efficiency must be between 0 and 1.")
 
         required_litres = water_litres / efficiency
-
-        total_flow = (
-            float(settings["emitter_flow"])
-            * int(settings["emitter_count"])
-        )
-
+        total_flow = float(settings["emitter_flow"]) * int(settings["emitter_count"])
         if total_flow <= 0:
             raise ValueError("Total irrigation flow must be positive.")
 
         runtime_minutes = (required_litres / total_flow) * 60
+        if runtime_minutes <= 0:
+            stop_irrigation_cycle(
+                farm_id, "No irrigation required", record_history=False
+            )
+            return jsonify({
+                "success": True,
+                "pump_on": False,
+                "message": "No irrigation required based on the current calculation.",
+                "pump_runtime_minutes": 0,
+                "water_required_litres": 0,
+            }), 200
 
-        set_pump_status(farm_id, True)
-
+        # One simulated cycle is capped at 24 hours.
+        duration_seconds = min(max(1, int(runtime_minutes * 60)), 24 * 60 * 60)
+        start_irrigation_cycle(farm_id, duration_seconds, mode="automatic")
         record_irrigation(
-            farm_id,
-            "ON",
-            "Virtual pump activated after safety checks",
+            farm_id, "ON",
+            "Timed virtual pump activated after weather safety checks"
         )
 
         return jsonify({
             "success": True,
             "pump_on": True,
             "lockout": False,
-            "message": "Virtual pump activated.",
+            "message": "Timed virtual irrigation started.",
             "et0": round(et0, 2),
             "kc": kc,
             "etc": round(etc, 2),
             "rainfall": round(rainfall, 2),
             "water_deficit_mm": round(water_deficit, 2),
             "water_required_litres": round(required_litres, 2),
-            "pump_runtime_minutes": round(runtime_minutes, 2),
+            "pump_runtime_minutes": round(duration_seconds / 60, 2),
+            "cycle_duration_seconds": duration_seconds,
             "rain_probability": rain_probability,
             "root_zone_moisture": moisture,
         }), 200
 
     except requests.RequestException:
         app.logger.exception("Irrigation control weather request failed")
-
         return jsonify({
             "success": False,
             "pump_on": False,
             "message": "Unable to verify weather safety.",
         }), 502
-
     except Exception:
         app.logger.exception("Irrigation control failed")
-
         return jsonify({
             "success": False,
             "message": "Unable to process irrigation control.",
@@ -1030,9 +985,137 @@ def farmer_assistant():
 
 
 # --------------------------------------------------
+# NPK ADVISOR: SOIL LAB REPORT EXTRACTION
+# --------------------------------------------------
+
+@app.route("/api/npk-detect", methods=["POST"])
+def npk_detect():
+    """Extract reported NPK values from an uploaded soil lab report."""
+
+    # Accept the common frontend field names so the upload can be
+    # connected without changing the existing application routes.
+    uploaded_file = (
+        request.files.get("file")
+        or request.files.get("soil_report")
+        or request.files.get("report")
+    )
+
+    if uploaded_file is None:
+        return jsonify({
+            "success": False,
+            "message": "Please upload a soil laboratory report.",
+        }), 400
+
+    if not uploaded_file.filename:
+        return jsonify({
+            "success": False,
+            "message": "Please select a soil report file.",
+        }), 400
+
+    mime_type = (uploaded_file.mimetype or "").lower()
+    supported_types = {
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+    }
+
+    if mime_type not in supported_types:
+        return jsonify({
+            "success": False,
+            "message": "Only PDF, JPG, PNG and WEBP reports are supported.",
+        }), 400
+
+    file_bytes = uploaded_file.read()
+
+    if not file_bytes:
+        return jsonify({
+            "success": False,
+            "message": "The uploaded soil report is empty.",
+        }), 400
+
+    # Flask also enforces the application-wide 10 MB request limit.
+    if len(file_bytes) > 8 * 1024 * 1024:
+        return jsonify({
+            "success": False,
+            "message": "The soil report must be smaller than 8 MB.",
+        }), 400
+
+    try:
+        extracted = extract_npk_from_soil_report(
+            file_bytes,
+            mime_type,
+        )
+
+        # The frontend's main fields use numbers. Keep the original
+        # analyte names and units separately so nothing is silently lost.
+        nutrient_details = {
+            "nitrogen": extracted.get("nitrogen", {}),
+            "phosphorus": extracted.get("phosphorus", {}),
+            "potassium": extracted.get("potassium", {}),
+        }
+
+        nutrients = {
+            name: detail.get("value") if isinstance(detail, dict) else None
+            for name, detail in nutrient_details.items()
+        }
+
+        return jsonify({
+            "success": True,
+            "message": "Soil report extraction completed. Please verify the values.",
+            "nutrients": nutrients,
+            "nutrient_details": nutrient_details,
+            "report_context": extracted.get("report_context"),
+            "extraction_status": extracted.get("extraction_status", "unclear"),
+            "notes": extracted.get("notes", []),
+            "source": "uploaded_soil_report",
+            "verification_required": True,
+            "disclaimer": (
+                "Values were transcribed from the uploaded report by AI. "
+                "They are not measurements made by this application. "
+                "Check them against the original laboratory report."
+            ),
+        }), 200
+
+    except ValueError as error:
+        return jsonify({
+            "success": False,
+            "message": str(error),
+        }), 400
+
+    except Exception:
+        app.logger.exception("NPK soil report extraction failed")
+
+        return jsonify({
+            "success": False,
+            "message": (
+                "Unable to read the soil report. Check the Gemini API "
+                "configuration and backend terminal, then try again."
+            ),
+        }), 502
+
+
+# --------------------------------------------------
 # START FLASK SERVER
 # IMPORTANT: KEEP THIS AT THE VERY BOTTOM
 # --------------------------------------------------
 
+def irrigation_worker():
+    """Stop timed virtual irrigation cycles when their duration expires."""
+    while True:
+        try:
+            stop_expired_cycles()
+        except Exception:
+            app.logger.exception("Automatic irrigation worker error")
+        time.sleep(1)
+
+
 if __name__ == "__main__":
-    app.run(debug=True, host="127.0.0.1", port=5000)
+    worker = threading.Thread(target=irrigation_worker, daemon=True)
+    worker.start()
+    app.run(
+        debug=True,
+        host="127.0.0.1",
+        port=5000,
+        use_reloader=False
+    )

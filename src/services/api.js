@@ -48,10 +48,8 @@ export async function getWeather(latitude, longitude) {
   if (
     !Number.isFinite(lat) ||
     !Number.isFinite(lon) ||
-    lat < -90 ||
-    lat > 90 ||
-    lon < -180 ||
-    lon > 180
+    lat < -90 || lat > 90 ||
+    lon < -180 || lon > 180
   ) {
     throw new Error("Invalid GPS coordinates.");
   }
@@ -70,12 +68,53 @@ export async function getWeather(latitude, longitude) {
   return apiRequest(`${BASE_URL}/forecast?${params.toString()}`);
 }
 
-// Convert GPS coordinates into a readable location name.
+// Convert device GPS coordinates into the most specific available place name.
 async function getLocationName(latitude, longitude) {
   const lat = Number(latitude);
   const lon = Number(longitude);
 
-  // First try BigDataCloud.
+  // First try OpenStreetMap for a more specific locality.
+  try {
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lon: String(lon),
+      format: "jsonv2",
+      zoom: "18",
+      addressdetails: "1",
+      "accept-language": "en",
+    });
+
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?${params.toString()}`
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      const address = data.address || {};
+
+      const locality =
+        address.neighbourhood ||
+        address.suburb ||
+        address.village ||
+        address.hamlet ||
+        address.town ||
+        address.city ||
+        address.municipality ||
+        address.county;
+
+      const state = address.state;
+
+      if (locality) {
+        return state && state.toLowerCase() !== locality.toLowerCase()
+          ? `${locality}, ${state}`
+          : locality;
+      }
+    }
+  } catch (error) {
+    console.warn("OpenStreetMap lookup failed:", error);
+  }
+
+  // Fallback to BigDataCloud.
   try {
     const params = new URLSearchParams({
       latitude: String(lat),
@@ -90,81 +129,21 @@ async function getLocationName(latitude, longitude) {
     if (response.ok) {
       const data = await response.json();
 
-      const candidates = [
-        data.locality,
-        data.city,
-        data.principalSubdivision,
-      ];
+      const locality =
+        data.locality ||
+        data.city ||
+        data.localityInfo?.administrative?.[0]?.name;
 
-      const parts = candidates
-        .filter(
-          (part) =>
-            typeof part === "string" && part.trim()
-        )
-        .map((part) => part.trim());
+      const state = data.principalSubdivision;
 
-      const uniqueParts = parts.filter(
-        (part, index) =>
-          parts.findIndex(
-            (item) => item.toLowerCase() === part.toLowerCase()
-          ) === index
-      );
-
-      if (uniqueParts.length) {
-        return uniqueParts.join(", ");
+      if (locality) {
+        return state && state.toLowerCase() !== locality.toLowerCase()
+          ? `${locality}, ${state}`
+          : locality;
       }
     }
   } catch (error) {
     console.warn("BigDataCloud lookup failed:", error);
-  }
-
-  // Fallback to OpenStreetMap reverse geocoding.
-  try {
-    const params = new URLSearchParams({
-      lat: String(lat),
-      lon: String(lon),
-      format: "jsonv2",
-      "accept-language": "en",
-    });
-
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?${params.toString()}`
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      const address = data.address || {};
-
-      const candidates = [
-        address.suburb,
-        address.neighbourhood,
-        address.village,
-        address.town,
-        address.city,
-        address.county,
-        address.state,
-      ];
-
-      const parts = candidates
-        .filter(
-          (part) =>
-            typeof part === "string" && part.trim()
-        )
-        .map((part) => part.trim());
-
-      const uniqueParts = parts.filter(
-        (part, index) =>
-          parts.findIndex(
-            (item) => item.toLowerCase() === part.toLowerCase()
-          ) === index
-      );
-
-      if (uniqueParts.length) {
-        return uniqueParts.slice(0, 3).join(", ");
-      }
-    }
-  } catch (error) {
-    console.warn("OpenStreetMap lookup failed:", error);
   }
 
   return "Your current location";
@@ -195,23 +174,11 @@ export async function getCurrentLocation() {
       resolve,
       (error) => {
         if (error.code === 1) {
-          reject(
-            new Error(
-              "Location permission denied. Allow location access in your browser settings."
-            )
-          );
+          reject(new Error("Location permission denied. Allow browser location access."));
         } else if (error.code === 2) {
-          reject(
-            new Error(
-              "Your location is unavailable. Turn on device location services."
-            )
-          );
+          reject(new Error("Your device location is unavailable. Check Windows location services."));
         } else {
-          reject(
-            new Error(
-              "Location request timed out. Please try again."
-            )
-          );
+          reject(new Error("Location request timed out. Please try again."));
         }
       },
       {
@@ -238,11 +205,7 @@ export async function getCurrentLocation() {
 // Continuously track the device's GPS location.
 export function watchCurrentLocation(onLocation, onError) {
   if (!("geolocation" in navigator)) {
-    if (onError) {
-      onError(
-        new Error("Your browser does not support GPS location detection.")
-      );
-    }
+    onError?.(new Error("Your browser does not support GPS location detection."));
     return () => {};
   }
 
@@ -252,20 +215,27 @@ export function watchCurrentLocation(onLocation, onError) {
   const watchId = navigator.geolocation.watchPosition(
     async (position) => {
       const requestId = ++latestRequest;
+
       const latitude = position.coords.latitude;
       const longitude = position.coords.longitude;
 
-      const name = await getLocationName(latitude, longitude);
+      try {
+        const name = await getLocationName(latitude, longitude);
 
-      if (stopped || requestId !== latestRequest) return;
+        if (stopped || requestId !== latestRequest) return;
 
-      onLocation({
-        latitude,
-        longitude,
-        name,
-        locality: name,
-        accuracy: position.coords.accuracy,
-      });
+        onLocation({
+          latitude,
+          longitude,
+          name,
+          locality: name,
+          accuracy: position.coords.accuracy,
+        });
+      } catch (error) {
+        if (!stopped && requestId === latestRequest) {
+          onError?.(error);
+        }
+      }
     },
     (error) => {
       if (stopped) return;
@@ -277,7 +247,7 @@ export function watchCurrentLocation(onLocation, onError) {
             ? "Your device location is unavailable."
             : "Location tracking timed out. Please try again.";
 
-      if (onError) onError(new Error(message));
+      onError?.(new Error(message));
     },
     {
       enableHighAccuracy: true,
@@ -300,10 +270,8 @@ export async function getSatelliteData(latitude, longitude) {
   if (
     !Number.isFinite(lat) ||
     !Number.isFinite(lon) ||
-    lat < -90 ||
-    lat > 90 ||
-    lon < -180 ||
-    lon > 180
+    lat < -90 || lat > 90 ||
+    lon < -180 || lon > 180
   ) {
     throw new Error("Invalid coordinates.");
   }
