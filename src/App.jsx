@@ -1,12 +1,10 @@
 
 import {
-  getCurrentLocation,
   getWeather,
-  watchCurrentLocation,
   askFarmerAssistant
 } from "./services/api";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Sprout, LayoutDashboard, CloudSun, Scan, Droplets, Satellite,
   FlaskConical, Activity, CalendarDays, MessageCircle, Wallet,
@@ -15,11 +13,12 @@ import {
   Leaf, Gauge, Send, Camera, Plus, Download, Settings,
   CircleHelp, LogOut, CheckCircle2, AlertTriangle, Clock,
   Droplet, IndianRupee, BarChart3, RefreshCw, Languages,
-  Mic, Volume2
+  Mic, MicOff, Volume2, Paperclip, FileText, Trash2, MessageSquarePlus, XCircle
 } from "lucide-react";
 
 import Login from "./Login";
 import NutrientAdvisor from "./components/NutrientAdvisor";
+import GoogleTranslateRuntime from "./components/GoogleTranslateRuntime";
 import "./App.css";
 import { jsPDF } from "jspdf";
 
@@ -178,6 +177,25 @@ const translations = {
   }
 };
 
+const UI_TRANSLATIONS = {
+  en: {},
+  kn: {
+    "Dashboard":"ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", "Weather":"ಹವಾಮಾನ", "Crop Doctor":"ಬೆಳೆ ವೈದ್ಯ", "Smart Irrigation":"ಸ್ಮಾರ್ಟ್ ನೀರಾವರಿ", "Satellite Monitoring":"ಉಪಗ್ರಹ ಮೇಲ್ವಿಚಾರಣೆ", "Nutrient Advisor":"ಪೋಷಕಾಂಶ ಸಲಹೆಗಾರ", "Crop Health Tracker":"ಬೆಳೆ ಆರೋಗ್ಯ ಟ್ರ್ಯಾಕರ್", "Farming Calendar":"ಕೃಷಿ ಕ್ಯಾಲೆಂಡರ್", "Farmer Chatbot":"ರೈತ ಚಾಟ್‌ಬಾಟ್", "Profit Calculator":"ಲಾಭ ಲೆಕ್ಕಾಚಾರ", "Yield Predictor":"ಇಳುವರಿ ಮುನ್ಸೂಚಕ", "Help & Support":"ಸಹಾಯ ಮತ್ತು ಬೆಂಬಲ", "Settings":"ಸೆಟ್ಟಿಂಗ್‌ಗಳು", "WORKSPACE":"ಕಾರ್ಯಸ್ಥಳ", "Search modules...":"ವಿಭಾಗಗಳನ್ನು ಹುಡುಕಿ...", "Refresh":"ಮರುಲೋಡ್", "Farmer Mode":"ರೈತ ಮೋಡ್", "Technical Mode":"ತಾಂತ್ರಿಕ ಮೋಡ್", "Language":"ಭಾಷೆ", "Log out":"ಲಾಗ್ ಔಟ್", "Welcome to your farm!":"ನಿಮ್ಮ ಹೊಲಕ್ಕೆ ಸ್ವಾಗತ!", "Here is a simple overview of your farm today.":"ಇಂದು ನಿಮ್ಮ ಹೊಲದ ಸರಳ ಮಾಹಿತಿ ಇಲ್ಲಿದೆ.", "Crop health":"ಬೆಳೆ ಆರೋಗ್ಯ", "Soil moisture estimate":"ಮಣ್ಣಿನ ತೇವಾಂಶ ಅಂದಾಜು", "Water requirement":"ನೀರಿನ ಅವಶ್ಯಕತೆ", "Temperature":"ತಾಪಮಾನ", "Farm overview":"ಹೊಲದ ಅವಲೋಕನ", "Irrigation status":"ನೀರಾವರಿ ಸ್ಥಿತಿ", "Today's farm activities":"ಇಂದಿನ ಕೃಷಿ ಚಟುವಟಿಕೆಗಳು", "Manage irrigation":"ನೀರಾವರಿ ನಿರ್ವಹಿಸಿ", "Weather forecast":"ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ", "Select farm":"ಹೊಲವನ್ನು ಆಯ್ಕೆಮಾಡಿ", "Save observation":"ವೀಕ್ಷಣೆಯನ್ನು ಉಳಿಸಿ", "Saving...":"ಉಳಿಸಲಾಗುತ್ತಿದೆ...", "Crop variety":"ಬೆಳೆ ತಳಿ", "Growth stage":"ಬೆಳವಣಿಗೆಯ ಹಂತ", "Health score (0–100)":"ಆರೋಗ್ಯ ಅಂಕ (0–100)", "Observation / notes":"ವೀಕ್ಷಣೆ / ಟಿಪ್ಪಣಿಗಳು", "Recent observations":"ಇತ್ತೀಚಿನ ವೀಕ್ಷಣೆಗಳು", "No crop health records yet":"ಇನ್ನೂ ಬೆಳೆ ಆರೋಗ್ಯ ದಾಖಲೆಗಳಿಲ್ಲ", "Add crop health observation":"ಬೆಳೆ ಆರೋಗ್ಯ ವೀಕ್ಷಣೆ ಸೇರಿಸಿ", "Crop health history":"ಬೆಳೆ ಆರೋಗ್ಯ ಇತಿಹಾಸ", "Crop profile":"ಬೆಳೆ ವಿವರ", "Farm":"ಹೊಲ", "Crop":"ಬೆಳೆ", "Variety":"ತಳಿ", "Growth stage":"ಬೆಳವಣಿಗೆಯ ಹಂತ", "Data status":"ದತ್ತಾಂಶ ಸ್ಥಿತಿ", "Database records":"ಡೇಟಾಬೇಸ್ ದಾಖಲೆಗಳು", "Awaiting first record":"ಮೊದಲ ದಾಖಲೆಗೆ ಕಾಯುತ್ತಿದೆ", "Not recorded":"ದಾಖಲಾಗಿಲ್ಲ", "Not entered":"ನಮೂದಿಸಿಲ್ಲ", "No farm records found. Add a farm first from the farm selector.":"ಯಾವುದೇ ಹೊಲದ ದಾಖಲೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ. ಮೊದಲು ಹೊಲವನ್ನು ಸೇರಿಸಿ.", "Cancel":"ರದ್ದುಮಾಡಿ", "Save":"ಉಳಿಸಿ", "Submit":"ಸಲ್ಲಿಸಿ", "Search":"ಹುಡುಕಿ", "Loading...":"ಲೋಡ್ ಆಗುತ್ತಿದೆ...", "Today":"ಇಂದು", "Tomorrow":"ನಾಳೆ", "Planned":"ಯೋಜಿಸಲಾಗಿದೆ"
+  },
+  te: {
+    "Dashboard":"డాష్‌బోర్డ్", "Weather":"వాతావరణం", "Crop Doctor":"పంట వైద్యుడు", "Smart Irrigation":"స్మార్ట్ నీటిపారుదల", "Satellite Monitoring":"ఉపగ్రహ పర్యవేక్షణ", "Nutrient Advisor":"పోషక సలహాదారు", "Crop Health Tracker":"పంట ఆరోగ్య ట్రాకర్", "Farming Calendar":"వ్యవసాయ క్యాలెండర్", "Farmer Chatbot":"రైతు చాట్‌బాట్", "Profit Calculator":"లాభాల లెక్కింపు", "Yield Predictor":"దిగుబడి అంచనా", "Help & Support":"సహాయం మరియు మద్దతు", "Settings":"సెట్టింగ్‌లు", "WORKSPACE":"పని ప్రదేశం", "Search modules...":"మాడ్యూల్స్ వెతకండి...", "Refresh":"రిఫ్రెష్", "Farmer Mode":"రైతు మోడ్", "Technical Mode":"సాంకేతిక మోడ్", "Language":"భాష", "Log out":"లాగ్ అవుట్", "Welcome to your farm!":"మీ పొలానికి స్వాగతం!", "Here is a simple overview of your farm today.":"ఈరోజు మీ పొలం యొక్క సరళమైన సమాచారం.", "Crop health":"పంట ఆరోగ్యం", "Soil moisture estimate":"నేల తేమ అంచనా", "Water requirement":"నీటి అవసరం", "Temperature":"ఉష్ణోగ్రత", "Farm overview":"పొలం వివరాలు", "Irrigation status":"నీటిపారుదల స్థితి", "Today's farm activities":"ఈరోజు వ్యవసాయ పనులు", "Manage irrigation":"నీటిపారుదల నిర్వహించండి", "Weather forecast":"వాతావరణ సూచన", "Select farm":"పొలాన్ని ఎంచుకోండి", "Save observation":"పరిశీలనను సేవ్ చేయండి", "Saving...":"సేవ్ అవుతోంది...", "Crop variety":"పంట రకం", "Growth stage":"పెరుగుదల దశ", "Health score (0–100)":"ఆరోగ్య స్కోరు (0–100)", "Observation / notes":"పరిశీలన / గమనికలు", "Recent observations":"ఇటీవలి పరిశీలనలు", "No crop health records yet":"ఇంకా పంట ఆరోగ్య రికార్డులు లేవు", "Add crop health observation":"పంట ఆరోగ్య పరిశీలనను జోడించండి", "Crop health history":"పంట ఆరోగ్య చరిత్ర", "Crop profile":"పంట వివరాలు", "Farm":"పొలం", "Crop":"పంట", "Variety":"రకం", "Growth stage":"పెరుగుదల దశ", "Data status":"డేటా స్థితి", "Database records":"డేటాబేస్ రికార్డులు", "Awaiting first record":"మొదటి రికార్డు కోసం వేచి ఉంది", "Not recorded":"నమోదు కాలేదు", "Not entered":"నమోదు చేయలేదు", "No farm records found. Add a farm first from the farm selector.":"పొలం రికార్డులు కనబడలేదు. ముందుగా పొలాన్ని జోడించండి.", "Cancel":"రద్దు చేయండి", "Save":"సేవ్ చేయండి", "Submit":"సమర్పించండి", "Search":"వెతకండి", "Loading...":"లోడ్ అవుతోంది...", "Today":"ఈరోజు", "Tomorrow":"రేపు", "Planned":"ప్రణాళిక చేయబడింది"
+  },
+  hi: {
+    "Dashboard":"डैशबोर्ड", "Weather":"मौसम", "Crop Doctor":"फसल डॉक्टर", "Smart Irrigation":"स्मार्ट सिंचाई", "Satellite Monitoring":"उपग्रह निगरानी", "Nutrient Advisor":"पोषक तत्व सलाहकार", "Crop Health Tracker":"फसल स्वास्थ्य ट्रैकर", "Farming Calendar":"कृषि कैलेंडर", "Farmer Chatbot":"किसान चैटबॉट", "Profit Calculator":"लाभ कैलकुलेटर", "Yield Predictor":"उपज पूर्वानुमान", "Help & Support":"सहायता और समर्थन", "Settings":"सेटिंग्स", "WORKSPACE":"कार्यस्थान", "Search modules...":"मॉड्यूल खोजें...", "Refresh":"रीफ्रेश", "Farmer Mode":"किसान मोड", "Technical Mode":"तकनीकी मोड", "Language":"भाषा", "Log out":"लॉग आउट", "Welcome to your farm!":"आपके खेत में आपका स्वागत है!", "Here is a simple overview of your farm today.":"आज आपके खेत की आसान जानकारी।", "Crop health":"फसल का स्वास्थ्य", "Soil moisture estimate":"मिट्टी की नमी का अनुमान", "Water requirement":"पानी की आवश्यकता", "Temperature":"तापमान", "Farm overview":"खेत का विवरण", "Irrigation status":"सिंचाई की स्थिति", "Today's farm activities":"आज के कृषि कार्य", "Manage irrigation":"सिंचाई प्रबंधित करें", "Weather forecast":"मौसम पूर्वानुमान", "Select farm":"खेत चुनें", "Save observation":"अवलोकन सहेजें", "Saving...":"सहेजा जा रहा है...", "Crop variety":"फसल की किस्म", "Growth stage":"विकास चरण", "Health score (0–100)":"स्वास्थ्य अंक (0–100)", "Observation / notes":"अवलोकन / नोट्स", "Recent observations":"हाल के अवलोकन", "No crop health records yet":"अभी तक फसल स्वास्थ्य रिकॉर्ड नहीं हैं", "Add crop health observation":"फसल स्वास्थ्य अवलोकन जोड़ें", "Crop health history":"फसल स्वास्थ्य इतिहास", "Crop profile":"फसल विवरण", "Farm":"खेत", "Crop":"फसल", "Variety":"किस्म", "Growth stage":"विकास चरण", "Data status":"डेटा स्थिति", "Database records":"डेटाबेस रिकॉर्ड", "Awaiting first record":"पहले रिकॉर्ड की प्रतीक्षा", "Not recorded":"दर्ज नहीं", "Not entered":"नहीं भरा गया", "No farm records found. Add a farm first from the farm selector.":"खेत का रिकॉर्ड नहीं मिला। पहले खेत जोड़ें।", "Cancel":"रद्द करें", "Save":"सहेजें", "Submit":"जमा करें", "Search":"खोजें", "Loading...":"लोड हो रहा है...", "Today":"आज", "Tomorrow":"कल", "Planned":"नियोजित"
+  },
+  ta: {
+    "Dashboard":"டாஷ்போர்டு", "Weather":"வானிலை", "Crop Doctor":"பயிர் மருத்துவர்", "Smart Irrigation":"ஸ்மார்ட் நீர்ப்பாசனம்", "Satellite Monitoring":"செயற்கைக்கோள் கண்காணிப்பு", "Nutrient Advisor":"ஊட்டச்சத்து ஆலோசகர்", "Crop Health Tracker":"பயிர் ஆரோக்கிய கண்காணிப்பு", "Farming Calendar":"விவசாய நாட்காட்டி", "Farmer Chatbot":"விவசாயி உரையாடல் உதவியாளர்", "Profit Calculator":"லாபக் கணிப்பான்", "Yield Predictor":"மகசூல் கணிப்பான்", "Help & Support":"உதவி மற்றும் ஆதரவு", "Settings":"அமைப்புகள்", "WORKSPACE":"பணியிடம்", "Search modules...":"பகுதிகளைத் தேடுங்கள்...", "Refresh":"புதுப்பிக்கவும்", "Farmer Mode":"விவசாயி முறை", "Technical Mode":"தொழில்நுட்ப முறை", "Language":"மொழி", "Log out":"வெளியேறு", "Welcome to your farm!":"உங்கள் பண்ணைக்கு வரவேற்கிறோம்!", "Here is a simple overview of your farm today.":"இன்றைய உங்கள் பண்ணையின் எளிய விவரங்கள்.", "Crop health":"பயிர் ஆரோக்கியம்", "Soil moisture estimate":"மண் ஈரப்பத மதிப்பீடு", "Water requirement":"நீர் தேவை", "Temperature":"வெப்பநிலை", "Farm overview":"பண்ணை விவரங்கள்", "Irrigation status":"நீர்ப்பாசன நிலை", "Today's farm activities":"இன்றைய விவசாயப் பணிகள்", "Manage irrigation":"நீர்ப்பாசனத்தை நிர்வகிக்கவும்", "Weather forecast":"வானிலை முன்னறிவிப்பு", "Select farm":"பண்ணையைத் தேர்ந்தெடுக்கவும்", "Save observation":"கவனிப்பைச் சேமிக்கவும்", "Saving...":"சேமிக்கப்படுகிறது...", "Crop variety":"பயிர் வகை", "Growth stage":"வளர்ச்சி நிலை", "Health score (0–100)":"ஆரோக்கிய மதிப்பெண் (0–100)", "Observation / notes":"கவனிப்பு / குறிப்புகள்", "Recent observations":"சமீபத்திய கவனிப்புகள்", "No crop health records yet":"இன்னும் பயிர் ஆரோக்கியப் பதிவுகள் இல்லை", "Add crop health observation":"பயிர் ஆரோக்கியக் கவனிப்பைச் சேர்க்கவும்", "Crop health history":"பயிர் ஆரோக்கிய வரலாறு", "Crop profile":"பயிர் விவரம்", "Farm":"பண்ணை", "Crop":"பயிர்", "Variety":"வகை", "Growth stage":"வளர்ச்சி நிலை", "Data status":"தரவு நிலை", "Database records":"தரவுத்தளப் பதிவுகள்", "Awaiting first record":"முதல் பதிவுக்காகக் காத்திருக்கிறது", "Not recorded":"பதிவு செய்யப்படவில்லை", "Not entered":"உள்ளிடப்படவில்லை", "No farm records found. Add a farm first from the farm selector.":"பண்ணைப் பதிவுகள் இல்லை. முதலில் பண்ணையைச் சேர்க்கவும்.", "Cancel":"ரத்துசெய்", "Save":"சேமி", "Submit":"சமர்ப்பிக்கவும்", "Search":"தேடு", "Loading...":"ஏற்றப்படுகிறது...", "Today":"இன்று", "Tomorrow":"நாளை", "Planned":"திட்டமிடப்பட்டது"
+  },
+  ml: {
+    "Dashboard":"ഡാഷ്ബോർഡ്", "Weather":"കാലാവസ്ഥ", "Crop Doctor":"വിള ഡോക്ടർ", "Smart Irrigation":"സ്മാർട്ട് ജലസേചനം", "Satellite Monitoring":"ഉപഗ്രഹ നിരീക്ഷണം", "Nutrient Advisor":"പോഷക ഉപദേഷ്ടാവ്", "Crop Health Tracker":"വിള ആരോഗ്യ ട്രാക്കർ", "Farming Calendar":"കൃഷി കലണ്ടർ", "Farmer Chatbot":"കർഷക ചാറ്റ്ബോട്ട്", "Profit Calculator":"ലാഭ കാൽക്കുലേറ്റർ", "Yield Predictor":"വിളവ് പ്രവചനം", "Help & Support":"സഹായവും പിന്തുണയും", "Settings":"ക്രമീകരണങ്ങൾ", "WORKSPACE":"പ്രവർത്തന സ്ഥലം", "Search modules...":"മൊഡ്യൂളുകൾ തിരയുക...", "Refresh":"പുതുക്കുക", "Farmer Mode":"കർഷക മോഡ്", "Technical Mode":"സാങ്കേതിക മോഡ്", "Language":"ഭാഷ", "Log out":"ലോഗ് ഔട്ട്", "Welcome to your farm!":"നിങ്ങളുടെ കൃഷിയിടത്തിലേക്ക് സ്വാഗതം!", "Here is a simple overview of your farm today.":"ഇന്നത്തെ കൃഷിയിടത്തിന്റെ ലളിതമായ വിവരങ്ങൾ.", "Crop health":"വിളയുടെ ആരോഗ്യം", "Soil moisture estimate":"മണ്ണിലെ ഈർപ്പത്തിന്റെ കണക്ക്", "Water requirement":"ജലത്തിന്റെ ആവശ്യം", "Temperature":"താപനില", "Farm overview":"കൃഷിയിട വിവരങ്ങൾ", "Irrigation status":"ജലസേചന നില", "Today's farm activities":"ഇന്നത്തെ കൃഷിപ്പണികൾ", "Manage irrigation":"ജലസേചനം നിയന്ത്രിക്കുക", "Weather forecast":"കാലാവസ്ഥാ പ്രവചനം", "Select farm":"കൃഷിയിടം തിരഞ്ഞെടുക്കുക", "Save observation":"നിരീക്ഷണം സംരക്ഷിക്കുക", "Saving...":"സംരക്ഷിക്കുന്നു...", "Crop variety":"വിളയുടെ ഇനം", "Growth stage":"വളർച്ചാ ഘട്ടം", "Health score (0–100)":"ആരോഗ്യ സ്കോർ (0–100)", "Observation / notes":"നിരീക്ഷണം / കുറിപ്പുകൾ", "Recent observations":"സമീപകാല നിരീക്ഷണങ്ങൾ", "No crop health records yet":"വിള ആരോഗ്യ രേഖകൾ ഇതുവരെ ഇല്ല", "Add crop health observation":"വിള ആരോഗ്യ നിരീക്ഷണം ചേർക്കുക", "Crop health history":"വിള ആരോഗ്യ ചരിത്രം", "Crop profile":"വിളയുടെ വിവരങ്ങൾ", "Farm":"കൃഷിയിടം", "Crop":"വിള", "Variety":"ഇനം", "Growth stage":"വളർച്ചാ ഘട്ടം", "Data status":"ഡാറ്റ നില", "Database records":"ഡാറ്റാബേസ് രേഖകൾ", "Awaiting first record":"ആദ്യ രേഖയ്ക്കായി കാത്തിരിക്കുന്നു", "Not recorded":"രേഖപ്പെടുത്തിയിട്ടില്ല", "Not entered":"നൽകിയിട്ടില്ല", "No farm records found. Add a farm first from the farm selector.":"കൃഷിയിട രേഖകൾ കണ്ടെത്തിയില്ല. ആദ്യം കൃഷിയിടം ചേർക്കുക.", "Cancel":"റദ്ദാക്കുക", "Save":"സംരക്ഷിക്കുക", "Submit":"സമർപ്പിക്കുക", "Search":"തിരയുക", "Loading...":"ലോഡ് ചെയ്യുന്നു...", "Today":"ഇന്ന്", "Tomorrow":"നാളെ", "Planned":"ആസൂത്രണം ചെയ്തു"
+  }
+};
+
 function MetricCard({ title, value, unit, change, icon: Icon, positive = true }) {
   return (
     <div className="metric-card">
@@ -185,7 +203,7 @@ function MetricCard({ title, value, unit, change, icon: Icon, positive = true })
         <span>{title}</span>
         <div className="metric-icon"><Icon size={19} /></div>
       </div>
-      <div className="metric-value">{value}<small>{unit}</small></div>
+      <div className="metric-value notranslate" translate="no">{value}<small>{unit}</small></div>
       <div className={`metric-change ${positive ? "positive" : "negative"}`}>
         {positive ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
         {change}
@@ -209,7 +227,7 @@ function Status({ children, type = "green" }) {
 
 /* ================= DASHBOARD ================= */
 
-function Dashboard({ setActive, mode, t, locationName }) {
+function Dashboard({ setActive, mode, t, locationName, deviceWeather }) {
   const tasks = [
     ["Check irrigation schedule", "Today · 10:30 AM", "High", "orange"],
     ["Inspect tomato crop health", "Today · 2:00 PM", "Medium", "blue"],
@@ -250,13 +268,18 @@ function Dashboard({ setActive, mode, t, locationName }) {
         )}
 
         <div className="panel">
-          <PanelTitle title={t.weather} subtitle="Demo weather information" action={<CloudSun size={20} />} />
-          <div className="weather-main"><Sun size={42} /><div><strong>28°C</strong><span>Partly cloudy</span></div></div>
-          <div className="weather-details">
-            <div><Wind size={17} /><span>Wind</span><strong>12 km/h</strong></div>
-            <div><CloudRain size={17} /><span>Rain chance</span><strong>30%</strong></div>
-            <div><Thermometer size={17} /><span>Humidity</span><strong>68%</strong></div>
-          </div>
+          <PanelTitle title={t.weather} subtitle={deviceWeather ? `Live weather · ${locationName}` : "Waiting for live device GPS"} action={<CloudSun size={20} />} />
+          {deviceWeather ? (
+            <>
+              <div className="weather-main"><CloudSun size={42} /><div><strong className="notranslate" translate="no">{deviceWeather.current?.temperature_2m ?? "—"}°C</strong><span>Current device-location temperature</span></div></div>
+              <div className="weather-details">
+                <div><Wind size={17} /><span>Wind</span><strong className="notranslate" translate="no">{deviceWeather.current?.wind_speed_10m ?? "—"} km/h</strong></div>
+                <div><CloudRain size={17} /><span>Rain chance</span><strong className="notranslate" translate="no">{deviceWeather.daily?.precipitation_probability_max?.[0] ?? "—"}%</strong></div>
+                <div><Thermometer size={17} /><span>Humidity</span><strong className="notranslate" translate="no">{deviceWeather.current?.relative_humidity_2m ?? "—"}%</strong></div>
+              </div>
+              <p className="helper-text">Weather fetched using the latest device GPS coordinates.</p>
+            </>
+          ) : <p className="helper-text">Live weather will appear after the browser shares your current device location. No saved or demo location is used.</p>}
           <button className="text-action" onClick={() => setActive("Weather")}>{t.forecast} <ArrowUpRight size={15} /></button>
         </div>
 
@@ -292,57 +315,32 @@ function Dashboard({ setActive, mode, t, locationName }) {
 
 /* ================= WEATHER ================= */
 
-function WeatherPage() {
-  const [weather, setWeather] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [locationName, setLocationName] = useState("Detecting your location...");
-
-  async function loadWeather(locationOverride = null) {
-    setLoading(true);
-    setError("");
-    try {
-      const location = locationOverride || await getCurrentLocation();
-      setLocationName(location.name || "Your current location");
-      const data = await getWeather(location.latitude, location.longitude);
-      setWeather({
-        current: data.current || {},
-        daily: data.daily || {},
-        location: { ...location, timezone: data.timezone || "Local timezone" }
-      });
-    } catch (err) {
-      setWeather(null);
-      setError(err.message || "Unable to load weather.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    let active = true;
-    const stopWatching = watchCurrentLocation(
-      location => { if (active) loadWeather(location); },
-      err => { if (active) { setError(err.message); setLoading(false); } }
-    );
-    return () => { active = false; stopWatching(); };
-  }, []);
-
-  const current = weather?.current || {};
-  const daily = weather?.daily || {};
+function WeatherPage({ locationName, deviceWeather, locationError, locationLoading, refreshDeviceLocation }) {
+  const current = deviceWeather?.current || {};
+  const daily = deviceWeather?.daily || {};
   const dates = daily.time || [];
   const maxTemps = daily.temperature_2m_max || [];
   const minTemps = daily.temperature_2m_min || [];
   const rain = daily.precipitation_probability_max || [];
   const et0 = daily.et0_fao_evapotranspiration || [];
+  const coordinates = deviceWeather?.coordinates;
 
   return (
     <>
       <div className="panel" style={{ marginBottom: 18 }}>
-        <PanelTitle title="Live farm weather" subtitle={weather ? locationName : "Detecting your live location"}
-          action={<button className="secondary-button" onClick={() => loadWeather()} disabled={loading}><RefreshCw size={16} />{loading ? "Locating..." : "Refresh location"}</button>} />
-        {loading && <p>Detecting GPS location and loading weather. Allow browser location access if requested.</p>}
-        {error && <div className="notice"><AlertTriangle size={17} /><span>{error}</span></div>}
-        {!loading && weather && !error && (
+        <PanelTitle
+          title="Live device weather"
+          subtitle={locationName || "Waiting for live device GPS"}
+          action={
+            <button className="secondary-button" onClick={refreshDeviceLocation} disabled={locationLoading}>
+              <RefreshCw size={16} />
+              {locationLoading ? "Detecting..." : "Refresh device location"}
+            </button>
+          }
+        />
+        {locationLoading && <p className="helper-text">Detecting your device's current position...</p>}
+        {locationError && <div className="notice"><AlertTriangle size={17} /><span>{locationError}</span></div>}
+        {deviceWeather ? (
           <>
             <div className="metrics-grid">
               <MetricCard title="Temperature" value={current.temperature_2m ?? "—"} unit="°C" change="Current" icon={Thermometer} />
@@ -350,27 +348,38 @@ function WeatherPage() {
               <MetricCard title="Wind speed" value={current.wind_speed_10m ?? "—"} unit="km/h" change="Current" icon={Wind} />
               <MetricCard title="Reference ET₀" value={et0[0] ?? "—"} unit="mm/day" change="Forecast" icon={Sun} />
             </div>
-            <div className="weather-main"><CloudSun size={42} /><div><strong>{current.apparent_temperature ?? "—"}°C</strong><span>Feels like · Humidity {current.relative_humidity_2m ?? "—"}%</span></div></div>
-            <div className="weather-details">
-              <div><CloudRain size={17} /><span>Current rain</span><strong>{current.rain ?? 0} mm</strong></div>
-              <div><Droplet size={17} /><span>Precipitation</span><strong>{current.precipitation ?? 0} mm</strong></div>
-              <div><Thermometer size={17} /><span>Humidity</span><strong>{current.relative_humidity_2m ?? "—"}%</strong></div>
+            <div className="weather-main">
+              <CloudSun size={42} />
+              <div><strong className="notranslate" translate="no">{current.apparent_temperature ?? current.temperature_2m ?? "—"}°C</strong><span>Feels like · Humidity <span className="notranslate" translate="no">{current.relative_humidity_2m ?? "—"}%</span></span></div>
             </div>
-            <p className="helper-text">Location: {weather.location.name || locationName}<br />GPS: {weather.location.latitude}, {weather.location.longitude}<br />Weather data is not a physical sensor reading.</p>
+            <div className="weather-details">
+              <div><CloudRain size={17} /><span>Current rain</span><strong className="notranslate" translate="no">{current.rain ?? 0} mm</strong></div>
+              <div><Droplet size={17} /><span>Precipitation</span><strong className="notranslate" translate="no">{current.precipitation ?? 0} mm</strong></div>
+              <div><Thermometer size={17} /><span>Humidity</span><strong className="notranslate" translate="no">{current.relative_humidity_2m ?? "—"}%</strong></div>
+            </div>
+            <p className="helper-text">
+              Live device location: {locationName}<br />
+              {coordinates ? <><span>GPS: </span><span className="notranslate" translate="no">{Number(coordinates.latitude).toFixed(5)}, {Number(coordinates.longitude).toFixed(5)}</span><span> · Accuracy: approximately </span><span className="notranslate" translate="no">{Math.round(coordinates.accuracy || 0)} m</span></> : ""}
+              <br />
+              {deviceWeather.fetchedAt ? <>Weather updated: <span className="notranslate" translate="no">{new Date(deviceWeather.fetchedAt).toLocaleTimeString("en-IN")}</span>. </> : ""}
+              Weather data is from an online forecast service, not a physical sensor. Place names © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>.
+            </p>
           </>
+        ) : (
+          <p className="helper-text">Weather will appear after your browser provides the device's live GPS coordinates. No fixed farm or saved location is used.</p>
         )}
       </div>
 
-      {!loading && weather && !error && (
+      {deviceWeather && (
         <>
           <div className="panel">
-            <PanelTitle title="7-day forecast" subtitle="Forecast for your detected location" />
+            <PanelTitle title="7-day forecast" subtitle={`Forecast for ${locationName}`} />
             <div className="forecast-grid">
               {dates.map((date, i) => (
                 <div className="forecast-day" key={date}>
                   <span>{i === 0 ? "Today" : new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", { weekday: "short" })}</span>
-                  <CloudSun /><strong>{maxTemps[i] ?? "—"}°</strong><small>{minTemps[i] ?? "—"}°</small>
-                  <span className="rain-label">{rain[i] ?? "—"}% rain</span><small>ET₀ {et0[i] ?? "—"} mm</small>
+                  <CloudSun /><strong className="notranslate" translate="no">{maxTemps[i] ?? "—"}°</strong><small className="notranslate" translate="no">{minTemps[i] ?? "—"}°</small>
+                  <span className="rain-label"><span className="notranslate" translate="no">{rain[i] ?? "—"}%</span> rain</span><small>ET₀ <span className="notranslate" translate="no">{et0[i] ?? "—"} mm</span></small>
                 </div>
               ))}
             </div>
@@ -1277,7 +1286,7 @@ function SatellitePage() {
     <div className="panel large-panel">
       <PanelTitle title="Satellite Monitoring" subtitle="Search satellite products using saved farm coordinates." action={<Status type="blue">Satellite APIs</Status>} />
       {loadingFarms ? <p>Loading farms...</p> : !farms.length ? <div className="notice"><AlertTriangle size={17} /><span>No farms found. Add a farm first.</span></div> : <>
-        <label>Select farm<select value={farmId} onChange={e => { setFarmId(e.target.value); setSentinelData(null); setSmapData(null); setError(""); }}>{farms.map(f => <option key={f.id} value={f.id}>{f.farm_name} — {f.crop_name}</option>)}</select></label>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", color: "#e8eee9", fontWeight: 600 }}>Select farm<select value={farmId} onChange={e => { setFarmId(e.target.value); setSentinelData(null); setSmapData(null); setError(""); }} style={{ display: "inline-block", appearance: "none", WebkitAppearance: "none", minWidth: 260, maxWidth: "100%", height: 44, padding: "0 42px 0 14px", border: "1px solid #5b765f", borderRadius: 10, backgroundColor: "#14251c", backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a8e83f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center", color: "#ffffff", colorScheme: "dark", fontSize: 14, fontWeight: 600, cursor: "pointer", outline: "none" }}>{farms.map(f => <option key={f.id} value={f.id} style={{ backgroundColor: "#14251c", color: "#ffffff" }}>{f.farm_name} — {f.crop_name}</option>)}</select></label>
         {selectedFarm && <div className="notice"><MapPin size={17} /><span>Latitude: {selectedFarm.latitude ?? "N/A"} | Longitude: {selectedFarm.longitude ?? "N/A"}</span></div>}
         <button className="primary-button" style={{ marginTop: 18 }} onClick={searchSatelliteData} disabled={loading}><RefreshCw size={16} />{loading ? "Searching satellite data..." : "Search Satellite Data"}</button>
       </>}
@@ -1307,19 +1316,173 @@ function SatellitePage() {
 /* ================= CROP HEALTH TRACKER ================= */
 
 function HealthPage() {
-  return <div className="dashboard-grid">
-    <div className="panel large-panel">
-      <PanelTitle title="Crop health history" subtitle="Illustrative health index records" />
-      <div className="history-list">{[["Week 1", 62], ["Week 2", 68], ["Week 3", 71], ["Week 4", 77], ["Week 5", 82]].map(([week, value]) => <div className="history-row" key={week}><span>{week}</span><div className="progress-track"><div style={{ width: `${value}%` }} /></div><strong>{value}/100</strong></div>)}</div>
-    </div>
+  const [farms, setFarms] = useState([]);
+  const [farmId, setFarmId] = useState("");
+  const [records, setRecords] = useState([]);
+  const [profile, setProfile] = useState(null);
+  const [form, setForm] = useState({ variety: "", growth_stage: "", health_score: "80", notes: "" });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => { loadFarms(); }, []);
+
+  async function loadFarms() {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await fetch(`${API_URL}/api/farms`);
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Could not load farms.");
+      const list = Array.isArray(data.farms) ? data.farms : [];
+      setFarms(list);
+      if (list.length) {
+        const id = String(list[0].id);
+        setFarmId(id);
+        await loadHealth(id);
+      }
+    } catch (err) {
+      setError(err.message || "Could not connect to the backend.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadHealth(id) {
+    if (!id) return;
+    try {
+      setError("");
+      const response = await fetch(`${API_URL}/api/crop-health?farm_id=${encodeURIComponent(id)}`);
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Could not load crop health data.");
+      setRecords(data.records || []);
+      setProfile(data.profile || null);
+      setForm(previous => ({
+        ...previous,
+        variety: data.profile?.variety || "",
+        growth_stage: data.profile?.growth_stage || ""
+      }));
+    } catch (err) {
+      setError(err.message || "Could not load crop health data.");
+      setRecords([]);
+      setProfile(null);
+    }
+  }
+
+  async function changeFarm(id) {
+    setFarmId(String(id));
+    setRecords([]);
+    setProfile(null);
+    setNotice("");
+    await loadHealth(id);
+  }
+
+  async function saveRecord(event) {
+    event.preventDefault();
+    if (!farmId) return;
+    const score = Number(form.health_score);
+    if (!Number.isFinite(score) || score < 0 || score > 100) {
+      setError("Health score must be between 0 and 100.");
+      return;
+    }
+    try {
+      setSaving(true);
+      setError("");
+      setNotice("");
+      const response = await fetch(`${API_URL}/api/crop-health`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          farm_id: Number(farmId),
+          variety: form.variety,
+          growth_stage: form.growth_stage,
+          health_score: score,
+          notes: form.notes
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "Could not save crop health record.");
+      setNotice("Crop health record saved to the database.");
+      setForm(previous => ({ ...previous, notes: "" }));
+      await loadHealth(farmId);
+    } catch (err) {
+      setError(err.message || "Could not save crop health record.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const selectedFarm = farms.find(farm => String(farm.id) === String(farmId));
+
+  if (loading) return <div className="panel"><p>Loading crop health data from backend...</p></div>;
+
+  return <>
     <div className="panel">
-      <PanelTitle title="Crop profile" subtitle="Example crop record" />
-      <div className="profile-detail"><span>Crop</span><strong>Tomato</strong></div>
-      <div className="profile-detail"><span>Variety</span><strong>Arka Rakshak</strong></div>
-      <div className="profile-detail"><span>Growth stage</span><strong>Flowering</strong></div>
-      <div className="profile-detail"><span>Data status</span><Status type="blue">Sample data</Status></div>
+      <PanelTitle title="Crop Health Tracker" subtitle="Crop details and health records saved in your AgroPulse database." />
+      {farms.length > 0 ? (
+        <label>Select farm
+          <select value={farmId} onChange={event => changeFarm(event.target.value)}>
+            {farms.map(farm => <option key={farm.id} value={farm.id}>{farm.farm_name} — {farm.crop_name}</option>)}
+          </select>
+        </label>
+      ) : <div className="notice"><AlertTriangle size={17} /><span>No farm records found. Add a farm first from the farm selector.</span></div>}
+      {error && <div className="notice" role="alert"><AlertTriangle size={17} /><span>{error}</span></div>}
+      {notice && <div className="notice" role="status"><CheckCircle2 size={17} /><span>{notice}</span></div>}
     </div>
-  </div>;
+
+    {selectedFarm && <>
+      <div className="dashboard-grid">
+        <div className="panel large-panel">
+          <PanelTitle title="Crop health history" subtitle="Recorded health scores (0–100), newest first." />
+          {records.length ? <div className="history-list">
+            {records.map(record => <div className="history-row" key={record.id}>
+              <span>{new Date(record.created_at + (record.created_at?.endsWith("Z") ? "" : "Z")).toLocaleDateString()}</span>
+              <div className="progress-track"><div style={{ width: `${record.health_score}%` }} /></div>
+              <strong>{record.health_score}/100</strong>
+            </div>)}
+          </div> : <div className="empty-state"><Activity size={32} /><strong>No crop health records yet</strong><p>Add the first observation using the form below. No sample history is shown.</p></div>}
+        </div>
+        <div className="panel">
+          <PanelTitle title="Crop profile" subtitle="Details from your selected farm and latest saved observation." />
+          <div className="profile-detail"><span>Farm</span><strong>{selectedFarm.farm_name}</strong></div>
+          <div className="profile-detail"><span>Crop</span><strong>{selectedFarm.crop_name || "Not entered"}</strong></div>
+          <div className="profile-detail"><span>Variety</span><strong>{profile?.variety || "Not recorded"}</strong></div>
+          <div className="profile-detail"><span>Growth stage</span><strong>{profile?.growth_stage || "Not recorded"}</strong></div>
+          <div className="profile-detail"><span>Data status</span><Status type={records.length ? "green" : "blue"}>{records.length ? "Database records" : "Awaiting first record"}</Status></div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <PanelTitle title="Add crop health observation" subtitle="Enter an observation to store it in SQLite for this farm." />
+        <form onSubmit={saveRecord}>
+          <div className="form-grid">
+            <label>Crop variety
+              <input value={form.variety} onChange={e => setForm({ ...form, variety: e.target.value })} placeholder="e.g. Arka Rakshak" />
+            </label>
+            <label>Growth stage
+              <input value={form.growth_stage} onChange={e => setForm({ ...form, growth_stage: e.target.value })} placeholder="e.g. Flowering" />
+            </label>
+            <label>Health score (0–100)
+              <input type="number" min="0" max="100" step="1" required value={form.health_score} onChange={e => setForm({ ...form, health_score: e.target.value })} />
+            </label>
+            <label>Observation / notes
+              <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Describe visible crop condition" />
+            </label>
+          </div>
+          <button type="submit" className="primary-button" disabled={saving}>{saving ? "Saving..." : "Save observation"}</button>
+        </form>
+      </div>
+
+      {records.length > 0 && <div className="panel">
+        <PanelTitle title="Recent observations" subtitle="Notes saved with each health score." />
+        {records.map(record => <div className="profile-detail" key={`note-${record.id}`}>
+          <span>{new Date(record.created_at + (record.created_at?.endsWith("Z") ? "" : "Z")).toLocaleString()}</span>
+          <strong>{record.notes || "No notes entered"}</strong>
+        </div>)}
+      </div>}
+    </>}
+  </>;
 }
 
 /* ================= FARMING CALENDAR ================= */
@@ -1339,73 +1502,275 @@ function CalendarPage() {
 
 /* ================= FARMER CHATBOT ================= */
 
+// Convert Markdown-style AI output into clean readable text.
+// Removes visible **, *, #, backticks and markdown separators.
+function cleanChatText(value) {
+  return String(value || "")
+    .replace(/```[\s\S]*?```/g, block =>
+      block.replace(/```[^\n]*\n?/g, "").replace(/```/g, "")
+    )
+    .replace(/\r/g, "")
+    .split("\n")
+    .map(rawLine => {
+      let line = rawLine.trim();
+      line = line.replace(/^#{1,6}\s*/, "");
+      line = line.replace(/^[-*+]\s+/, "• ");
+      line = line.replace(/^\d+[.)]\s+/, match => `${match.trim()} `);
+      line = line.replace(/\*\*(.*?)\*\*/g, "$1");
+      line = line.replace(/__(.*?)__/g, "$1");
+      line = line.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "$1");
+      line = line.replace(/(?<!_)_([^_]+)_(?!_)/g, "$1");
+      line = line.replace(/`([^`]+)`/g, "$1");
+      line = line.replace(/^\s*[-*_]{3,}\s*$/, "");
+      line = line.replace(/\*+/g, "").replace(/_{2,}/g, "");
+      line = line.replace(/^#+\s*/, "").replace(/\s{2,}/g, " ");
+      return line;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function FormattedChatAnswer({ text }) {
+  const cleanText = cleanChatText(text);
+  return (
+    <div className="formatted-chat-answer">
+      {cleanText.split("\n").map((line, index) =>
+        line.trim()
+          ? <p key={index}>{line}</p>
+          : <div key={index} style={{ height: 6 }} />
+      )}
+    </div>
+  );
+}
+
 function ChatbotPage({ language, t }) {
+  const STORAGE_KEY = "agropulse_farmer_chat_history_v1";
+  const welcomeMessage = {
+    from: "bot",
+    text: "Namaste! I'm your AgroPulse AI farm assistant. Ask me about crop diseases, irrigation, soil nutrients, weather or farm planning. You can also attach a crop photo or soil report."
+  };
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([{ from: "bot", text: "Namaste! I'm your AgroPulse AI farm assistant. Ask me about crop diseases, irrigation, soil nutrients, weather or farm planning." }]);
+  const [conversations, setConversations] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      return Array.isArray(saved) ? saved : [];
+    } catch { return []; }
+  });
+  const [activeId, setActiveId] = useState(() => {
+    try { return localStorage.getItem("agropulse_active_chat_v1") || ""; }
+    catch { return ""; }
+  });
+  const [attachments, setAttachments] = useState([]);
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
   const [voiceError, setVoiceError] = useState("");
+  const [replyMode, setReplyMode] = useState("text");
+  const [speaking, setSpeaking] = useState(false);
+  const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  function speakText(text) {
-    if (!("speechSynthesis" in window)) { setVoiceError("Speech output is not supported in this browser."); return; }
-    window.speechSynthesis.cancel();
-    const speech = new SpeechSynthesisUtterance(text);
-    speech.lang = language;
-    speech.rate = 0.9;
-    window.speechSynthesis.speak(speech);
+  const activeConversation = conversations.find(chat => chat.id === activeId);
+  const messages = activeConversation?.messages || [welcomeMessage];
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations)); }
+    catch { setVoiceError("Browser storage is full. Remove some old conversations or attachments."); }
+  }, [conversations]);
+
+  useEffect(() => {
+    try { if (activeId) localStorage.setItem("agropulse_active_chat_v1", activeId); }
+    catch { /* Storage may be disabled. */ }
+  }, [activeId]);
+
+  function updateMessages(nextMessages, title) {
+    setConversations(previous => {
+      const exists = previous.some(chat => chat.id === activeId);
+      if (exists) return previous.map(chat => chat.id === activeId
+        ? { ...chat, title: chat.title === "New chat" ? (title || chat.title) : chat.title, updatedAt: Date.now(), messages: nextMessages }
+        : chat);
+      const id = activeId || `chat-${Date.now()}`;
+      if (!activeId) setActiveId(id);
+      return [{ id, title: title || "New chat", updatedAt: Date.now(), messages: nextMessages }, ...previous];
+    });
   }
 
-  function startListening() {
-    if (loading || listening) return;
+  function startNewChat() {
+    stopListening();
+    stopSpeaking();
+    const id = `chat-${Date.now()}`;
+    setActiveId(id);
+    setMessage("");
+    setAttachments([]);
+    setVoiceError("");
+    setConversations(previous => [{ id, title: "New chat", updatedAt: Date.now(), messages: [welcomeMessage] }, ...previous]);
+  }
+
+  function openConversation(id) {
+    setActiveId(id);
+    setMessage("");
+    setAttachments([]);
+    setVoiceError("");
+  }
+
+  function deleteConversation(id, event) {
+    event?.stopPropagation();
+    const remaining = conversations.filter(chat => chat.id !== id);
+    setConversations(remaining);
+    if (activeId === id) setActiveId(remaining[0]?.id || "");
+  }
+
+  function addFiles(fileList) {
+    const files = Array.from(fileList || []);
+    const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf", "text/plain"];
+    const next = [];
+    for (const file of files) {
+      if (!allowed.includes(file.type)) {
+        setVoiceError(`${file.name}: supported formats are JPG, PNG, WEBP, PDF and TXT.`);
+        continue;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        setVoiceError(`${file.name}: file must be smaller than 8 MB.`);
+        continue;
+      }
+      next.push(file);
+    }
+    if (attachments.length + next.length > 4) {
+      setVoiceError("You can attach up to 4 files per message.");
+      return;
+    }
+    setAttachments(previous => [...previous, ...next]);
+    setVoiceError("");
+  }
+
+  function fileToPayload(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        resolve({ name: file.name, mime_type: file.type || "application/octet-stream", data: dataUrl.split(",")[1] || "" });
+      };
+      reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function speakText(text) {
+    if (!("speechSynthesis" in window)) { setVoiceError("Voice output is not supported in this browser. Try Google Chrome."); return; }
+    window.speechSynthesis.cancel();
+    const speech = new SpeechSynthesisUtterance(cleanChatText(text));
+    speech.lang = language; speech.rate = 0.9;
+    speech.onstart = () => setSpeaking(true);
+    speech.onend = () => setSpeaking(false);
+    speech.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(speech);
+  }
+  function stopSpeaking() {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setSpeaking(false);
+  }
+  function stopListening() {
+    const recognition = recognitionRef.current;
+    if (recognition) { try { recognition.stop(); } catch { /* already stopped */ } }
+    recognitionRef.current = null; setListening(false);
+  }
+  function toggleListening() {
+    if (listening) { stopListening(); return; }
+    if (loading) return;
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) { setVoiceError("Speech recognition is not supported. Try Google Chrome."); return; }
     try {
-      const recognition = new Recognition();
-      recognition.lang = language;
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      const recognition = new Recognition(); recognitionRef.current = recognition;
+      recognition.lang = language; recognition.continuous = false; recognition.interimResults = true; recognition.maxAlternatives = 1;
       recognition.onstart = () => { setListening(true); setVoiceError(""); };
-      recognition.onresult = e => setMessage(e.results[0][0].transcript);
-      recognition.onerror = () => { setVoiceError("Could not recognize your voice. Please try again."); setListening(false); };
-      recognition.onend = () => setListening(false);
+      recognition.onresult = event => {
+        let transcript = "";
+        for (let i = 0; i < event.results.length; i += 1) transcript += event.results[i]?.[0]?.transcript || "";
+        if (transcript.trim()) setMessage(transcript.trim());
+      };
+      recognition.onerror = event => {
+        setVoiceError(event?.error === "no-speech" ? "No speech detected. Please speak again." : event?.error === "not-allowed" ? "Microphone permission is blocked. Allow microphone access in browser settings." : "Could not recognize your voice. Please try again.");
+        setListening(false); recognitionRef.current = null;
+      };
+      recognition.onend = () => { setListening(false); recognitionRef.current = null; };
       recognition.start();
-    } catch { setListening(false); setVoiceError("Unable to start voice recognition."); }
+    } catch { recognitionRef.current = null; setListening(false); setVoiceError("Unable to start voice recognition."); }
+  }
+  useEffect(() => () => {
+    if (recognitionRef.current) { try { recognitionRef.current.abort(); } catch { /* ignore */ } }
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  }, []);
+
+  function chooseReplyMode(mode) {
+    setReplyMode(mode); setVoiceError("");
+    if (mode === "text") { stopListening(); stopSpeaking(); }
   }
 
   async function sendMessage() {
     const userMessage = message.trim();
-    if (!userMessage || loading) return;
-    setMessage(""); setVoiceError(""); setLoading(true);
-    setMessages(prev => [...prev, { from: "user", text: userMessage }]);
+    if ((!userMessage && !attachments.length) || loading) return;
+    stopListening(); setMessage(""); setVoiceError(""); setLoading(true);
+    const outgoingFiles = attachments;
+    setAttachments([]);
+    const userItem = { from: "user", text: userMessage || "Please analyse the attached file(s).", files: outgoingFiles.map(file => ({ name: file.name, type: file.type, preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : "" })) };
+    const previousMessages = messages;
+    const nextMessages = [...previousMessages, userItem];
+    updateMessages(nextMessages, userMessage.slice(0, 42) || outgoingFiles[0]?.name || "File analysis");
+    const shouldSpeak = replyMode === "voice";
     try {
-      const response = await askFarmerAssistant(userMessage);
+      const filePayloads = await Promise.all(outgoingFiles.map(fileToPayload));
+      const history = previousMessages.filter(item => item.from === "user" || item.from === "bot").slice(-12).map(item => ({ role: item.from === "bot" ? "model" : "user", text: item.text }));
+      const response = await askFarmerAssistant(userItem.text, { files: filePayloads, history });
       const answer = typeof response === "string" ? response : response?.answer || response?.reply || response?.response;
       if (!answer || typeof answer !== "string") throw new Error("The AI returned an empty response.");
-      setMessages(prev => [...prev, { from: "bot", text: answer }]);
-      speakText(answer);
-    } catch (err) {
-      setMessages(prev => [...prev, { from: "bot", text: `Sorry, I couldn't get an AI response. ${err.message || "Check that the Flask backend is running."}` }]);
+      const cleanAnswer = cleanChatText(answer);
+      updateMessages([...nextMessages, { from: "bot", text: cleanAnswer }], userItem.text.slice(0, 42));
+      if (shouldSpeak) speakText(cleanAnswer);
+    } catch (error) {
+      const errorText = `Sorry, I couldn't get an AI response. ${error.message || "Check that the Flask backend is running."}`;
+      updateMessages([...nextMessages, { from: "bot", text: errorText }], userItem.text.slice(0, 42));
+      if (shouldSpeak) speakText(errorText);
     } finally { setLoading(false); }
   }
 
-  return <div className="panel chat-panel">
-    <PanelTitle title={t.chat} subtitle="Gemini AI-powered farming assistance · Voice enabled" action={<Status type="green">{t.demo}</Status>} />
-    <div className="chat-messages">
-      {messages.map((m, i) => <div className={`chat-message ${m.from}`} key={i}>
-        <div className="chat-avatar">{m.from === "bot" ? <Sprout size={17} /> : "You"}</div>
-        <p>{m.text}</p>
-        {m.from === "bot" && <button className="voice-small-button" onClick={() => speakText(m.text)} aria-label={t.speak} title={t.speak}><Volume2 size={17} /></button>}
-      </div>)}
-      {loading && <div className="chat-message bot"><div className="chat-avatar"><Sprout size={17} /></div><p>AgroPulse AI is thinking...</p></div>}
+  return <div className="panel chat-panel ag-chat-shell">
+    <style>{`.formatted-chat-answer{line-height:1.7;overflow-wrap:anywhere}.formatted-chat-answer p{margin:0 0 10px}.formatted-chat-answer p:last-child{margin-bottom:0}.chat-mode-selector{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.chat-mode-selector button{min-width:150px}`}</style>
+    <div className="ag-chat-top"><div><PanelTitle title={t.chat} subtitle="Your AI farming companion — ask, attach and explore." action={<Status type="green">Gemini AI</Status>} /></div><button className="primary-button" type="button" onClick={startNewChat}><MessageSquarePlus size={16}/> New Chat</button></div>
+    <div className="ag-chat-layout">
+      <aside className="ag-chat-history"><div className="ag-chat-history-title">Recent chats</div>
+        {conversations.length === 0 && <p className="ag-chat-muted">Your conversations will appear here.</p>}
+        {conversations.map(chat => <div key={chat.id} className={`ag-chat-history-row ${chat.id === activeId ? "active" : ""}`}><button type="button" onClick={() => openConversation(chat.id)}>{chat.title || "New chat"}<small>{new Date(chat.updatedAt).toLocaleDateString()}</small></button><button type="button" title="Delete chat" onClick={event => deleteConversation(chat.id, event)}><Trash2 size={14}/></button></div>)}
+      </aside>
+      <section className="ag-chat-main">
+        <div className="chat-mode-selector" role="group" aria-label="Choose assistant type">
+          <button type="button" className={replyMode === "text" ? "primary-button" : "secondary-button"} onClick={() => chooseReplyMode("text")} aria-pressed={replyMode === "text"}><MessageCircle size={17}/> Text Assistant</button>
+          <button type="button" className={replyMode === "voice" ? "primary-button" : "secondary-button"} onClick={() => chooseReplyMode("voice")} aria-pressed={replyMode === "voice"}><Volume2 size={17}/> Voice Assistant</button>
+          {speaking && <button type="button" className="secondary-button" onClick={stopSpeaking}>Stop speaking</button>}
+        </div>
+        <div className="chat-messages ag-chat-messages">
+          {messages.map((item, index) => <div className={`chat-message ${item.from}`} key={`${activeId}-${index}`}>
+            <div className="chat-avatar">{item.from === "bot" ? <Sprout size={17}/> : "You"}</div>
+            <div className="chat-answer"><FormattedChatAnswer text={item.text}/>
+              {item.files?.length > 0 && <div className="ag-chat-file-list">{item.files.map((file, i) => <div className="ag-chat-file" key={i}>{file.preview ? <img src={file.preview} alt={file.name}/> : <FileText size={18}/>}<span>{file.name}</span></div>)}</div>}
+            </div>
+            {item.from === "bot" && <button className="voice-small-button" onClick={() => speakText(item.text)} aria-label="Read this answer aloud" title="Read this answer aloud"><Volume2 size={17}/></button>}
+          </div>)}
+          {loading && <div className="chat-message bot"><div className="chat-avatar"><Sprout size={17}/></div><p>AgroPulse AI is analysing your question...</p></div>}
+        </div>
+        {attachments.length > 0 && <div className="ag-chat-pending-files">{attachments.map((file, i) => <div key={`${file.name}-${i}`}><span>{file.type.startsWith("image/") ? "🖼️" : "📄"} {file.name}</span><button type="button" onClick={() => setAttachments(previous => previous.filter((_, index) => index !== i))} aria-label={`Remove ${file.name}`}><XCircle size={16}/></button></div>)}</div>}
+        <div className="chat-input ag-chat-composer">
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" multiple hidden onChange={event => { addFiles(event.target.files); event.target.value = ""; }}/>
+          <button type="button" className="secondary-button" onClick={() => fileInputRef.current?.click()} disabled={loading} title="Attach image or document"><Paperclip size={18}/></button>
+          <input value={message} onChange={event => setMessage(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder={replyMode === "voice" ? "Speak using the microphone or type your question..." : t.chatPlaceholder} disabled={loading} aria-label={t.chatPlaceholder}/>
+          {replyMode === "voice" && <button type="button" className={`secondary-button voice-button${listening ? " voice-button-active" : ""}`} onClick={toggleListening} disabled={loading} title={listening ? "Turn microphone off" : "Start voice input"} aria-pressed={listening}>{listening ? <MicOff size={18}/> : <Mic size={18}/>}<span>{listening ? "Listening..." : "Speak"}</span></button>}
+          <button className="primary-button" onClick={sendMessage} disabled={(!message.trim() && !attachments.length) || loading} aria-label="Send message">{loading ? <RefreshCw size={17}/> : <Send size={17}/>}</button>
+        </div>
+        <p className="ag-chat-hint">Attach up to 4 files (JPG, PNG, WEBP, PDF or TXT; 8 MB each). Your chat history is saved in this browser.</p>
+        {listening && <p className="voice-status"><Mic size={15}/> Listening — speak your question now.</p>}
+        {voiceError && <div className="notice"><AlertTriangle size={17}/><span>{voiceError}</span></div>}
+        <p className="helper-text">AI-generated advice may not be accurate for every farm. Verify important crop treatment and fertilizer decisions with a local agricultural expert.</p>
+      </section>
     </div>
-    <div className="chat-input">
-      <input value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={t.chatPlaceholder} disabled={loading} aria-label={t.chatPlaceholder} />
-      <button className="secondary-button voice-button" onClick={startListening} disabled={listening || loading} title={listening ? t.stop : t.listen}><Mic size={18} /></button>
-      <button className="primary-button" onClick={sendMessage} disabled={!message.trim() || loading} aria-label="Send message">{loading ? <RefreshCw size={17} /> : <Send size={17} />}</button>
-    </div>
-    {listening && <p className="voice-status"><Mic size={15} /> {t.listen}...</p>}
-    {voiceError && <div className="notice"><AlertTriangle size={17} /><span>{voiceError}</span></div>}
-    <p className="helper-text">AI-generated advice may not be accurate for every farm. Verify important crop treatment and fertilizer decisions with a local agricultural expert.</p>
   </div>;
 }
 
@@ -1539,10 +1904,10 @@ function SettingsPage({ user, languageKey, setLanguageKey, mode, setMode, handle
 
 /* ================= SECTION ROUTER ================= */
 
-function SectionContent({ active, setActive, mode, language, t, locationName, user, languageKey, setLanguageKey, setMode, handleLogout }) {
+function SectionContent({ active, setActive, mode, language, t, locationName, deviceWeather, locationError, locationLoading, refreshDeviceLocation, user, languageKey, setLanguageKey, setMode, handleLogout }) {
   switch (active) {
-    case "Dashboard": return <Dashboard setActive={setActive} mode={mode} t={t} locationName={locationName} />;
-    case "Weather": return <WeatherPage />;
+    case "Dashboard": return <Dashboard setActive={setActive} mode={mode} t={t} locationName={locationName} deviceWeather={deviceWeather} />;
+    case "Weather": return <WeatherPage locationName={locationName} deviceWeather={deviceWeather} locationError={locationError} locationLoading={locationLoading} refreshDeviceLocation={refreshDeviceLocation} />;
     case "Crop Doctor": return <CropDoctor />;
     case "Smart Irrigation": return <IrrigationPage />;
     case "Satellite Monitoring": return <SatellitePage />;
@@ -1577,6 +1942,12 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [locationName, setLocationName] = useState("Detecting your current location...");
+  const [deviceWeather, setDeviceWeather] = useState(null);
+  const [locationError, setLocationError] = useState("");
+  const [locationLoading, setLocationLoading] = useState(true);
+  // Exposes the single shared GPS update handler to the manual refresh button.
+  const updateLocationFromPointRef = useRef(null);
+  const manualLocationOverrideRef = useRef(false);
   const [farms, setFarms] = useState([]);
   const [selectedFarmId, setSelectedFarmId] = useState(() => localStorage.getItem("agropulse-selected-farm") || "");
   const [farmMenuOpen, setFarmMenuOpen] = useState(false);
@@ -1726,17 +2097,323 @@ export default function App() {
 
   useEffect(() => { loadFarmList(); }, []);
 
+  // One shared live-device tracker powers BOTH Dashboard and Weather.
+  // It never reads farm coordinates or a previously saved location.
   useEffect(() => {
-    const stopWatching = watchCurrentLocation(
-      location => setLocationName(location.name || "Your current location"),
-      err => console.warn("Location tracking:", err.message)
+    if (!navigator.geolocation) {
+      setLocationName("Device location is not supported by this browser");
+      setLocationError("Use a browser with location support and allow device location access.");
+      setLocationLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let lastGeocodedPoint = null;
+    let lastWeatherPoint = null;
+    let lastWeatherFetch = 0;
+    let geocodeBusy = false;
+    let lastGeocodeRequestAt = 0;
+    let weatherBusy = false;
+    let newestPoint = null;
+
+    const distanceMetres = (a, b) => {
+      if (!a || !b) return Infinity;
+      const rad = value => value * Math.PI / 180;
+      const dLat = rad(b.latitude - a.latitude);
+      const dLon = rad(b.longitude - a.longitude);
+      const lat1 = rad(a.latitude);
+      const lat2 = rad(b.latitude);
+      const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+      return 6371000 * 2 * Math.asin(Math.sqrt(h));
+    };
+
+    const reverseGeocode = async point => {
+      const fallback = `Current device position (${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)})`;
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+
+      try {
+        // Use the actual GPS point for a detailed reverse lookup. The previous
+        // provider could return a broad administrative locality (for example,
+        // Yelahanka) instead of the nearby neighbourhood.
+        const params = new URLSearchParams({
+          format: "jsonv2",
+          lat: String(point.latitude),
+          lon: String(point.longitude),
+          zoom: "18",
+          addressdetails: "1",
+          "accept-language": "en"
+        });
+
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?${params.toString()}`,
+          {
+            signal: controller.signal,
+            headers: { Accept: "application/json" }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Could not convert GPS coordinates to a place name.");
+        }
+
+        const place = await response.json();
+        const address = place.address || {};
+
+        // Prefer the nearest named neighbourhood/locality over a broad
+        // administrative area, then add the city/state for context.
+        const locality =
+          address.neighbourhood ||
+          address.suburb ||
+          address.quarter ||
+          address.village ||
+          address.hamlet ||
+          address.town ||
+          address.city_district ||
+          address.city ||
+          address.county;
+
+        const city =
+          address.city ||
+          address.town ||
+          address.municipality ||
+          address.county;
+
+        const state = address.state;
+        const country = address.country;
+
+        const parts = [locality, city, state, country]
+          .filter(Boolean)
+          .filter((value, index, array) => array.indexOf(value) === index);
+
+        return parts.join(", ") || place.display_name || fallback;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    };
+
+    const updateFromPoint = async point => {
+      if (manualLocationOverrideRef.current) return;
+      newestPoint = point;
+      setLocationLoading(false);
+      setLocationError("");
+
+      // Resolve the place name in the background. Do not make weather wait
+      // for reverse-geocoding; show coordinates immediately after the GPS fix.
+      if (!geocodeBusy && Date.now() - lastGeocodeRequestAt >= 1100 && distanceMetres(lastGeocodedPoint, point) >= 150) {
+        geocodeBusy = true;
+        lastGeocodeRequestAt = Date.now();
+        const pointBeingResolved = point;
+        setLocationName(`Current device position (${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)})`);
+        (async () => {
+          try {
+            const name = await reverseGeocode(pointBeingResolved);
+            if (!cancelled && newestPoint && distanceMetres(pointBeingResolved, newestPoint) < 500) {
+              setLocationName(name);
+              lastGeocodedPoint = pointBeingResolved;
+            }
+          } catch {
+            // Keep the live GPS coordinates as the location label if lookup fails.
+          } finally {
+            geocodeBusy = false;
+          }
+        })();
+      }
+
+      // Weather is refreshed on first GPS fix, after 500 m movement, or every
+      // 10 minutes. Small GPS drift does not trigger unnecessary API requests.
+      const moved = distanceMetres(lastWeatherPoint, point) >= 500;
+      const timeDue = Date.now() - lastWeatherFetch >= 10 * 60 * 1000;
+      if (!weatherBusy && (!lastWeatherPoint || moved || timeDue)) {
+        weatherBusy = true;
+        const pointBeingFetched = point;
+        lastWeatherFetch = Date.now();
+        try {
+          const data = await getWeather(pointBeingFetched.latitude, pointBeingFetched.longitude);
+          if (!cancelled && newestPoint && distanceMetres(pointBeingFetched, newestPoint) < 1500) {
+            setDeviceWeather({
+              current: data.current || {},
+              daily: data.daily || {},
+              fetchedAt: Date.now(),
+              coordinates: pointBeingFetched
+            });
+            lastWeatherPoint = pointBeingFetched;
+          }
+        } catch (error) {
+          if (!cancelled) setLocationError(`Weather could not be refreshed: ${error.message || "Please try again."}`);
+        } finally {
+          weatherBusy = false;
+        }
+      }
+    };
+
+    // Keep the same handler for watchPosition, manual refresh, and the
+    // periodic location check. This ensures Dashboard and Weather always
+    // receive exactly the same fresh coordinates.
+    updateLocationFromPointRef.current = updateFromPoint;
+
+    const handlePosition = position => {
+      if (cancelled) return;
+      const point = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      };
+      updateFromPoint(point);
+    };
+
+    // Ask for a position immediately instead of waiting for the first watch
+    // callback or the old 20-second polling interval.
+    navigator.geolocation.getCurrentPosition(
+      handlePosition,
+      error => {
+        if (!cancelled) {
+          setLocationLoading(false);
+          setLocationError(
+            error.code === 1
+              ? "Location permission denied. Allow location access for localhost."
+              : error.code === 2
+                ? "Device location is unavailable. Check Windows Location Services and Wi-Fi."
+                : "Location is taking longer than expected. The live tracker is still trying."
+          );
+        }
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
-    return stopWatching;
+
+    const watchId = navigator.geolocation.watchPosition(
+      handlePosition,
+      error => {
+        if (cancelled) return;
+        setLocationLoading(false);
+        setLocationError(
+          error.code === 1
+            ? "Location permission denied. Allow location access for localhost in your browser."
+            : error.code === 2
+              ? "Device location is unavailable. Turn on Windows Location Services and check Wi-Fi/GPS."
+              : "Device location timed out. Keep the app open and try Refresh device location."
+        );
+        setLocationName("Waiting for live device location");
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+
+    // Some desktop location providers do not emit watchPosition callbacks
+    // promptly. Poll for a fresh fix as a fallback while the app is open.
+    const locationPollId = window.setInterval(() => {
+      if (cancelled) return;
+      navigator.geolocation.getCurrentPosition(
+        handlePosition,
+        () => {},
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      );
+    }, 10000);
+
+    return () => {
+      cancelled = true;
+      updateLocationFromPointRef.current = null;
+      navigator.geolocation.clearWatch(watchId);
+      window.clearInterval(locationPollId);
+    };
   }, []);
+
+  // Force a new browser location fix and immediately pass its coordinates
+  // into the shared tracker. Do not wait for a separate watchPosition event.
+  function refreshDeviceLocation() {
+    manualLocationOverrideRef.current = false;
+    if (!navigator.geolocation) {
+      setLocationError("This browser does not support device location.");
+      return;
+    }
+    setLocationLoading(true);
+    setLocationError("");
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const point = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        };
+        if (updateLocationFromPointRef.current) {
+          updateLocationFromPointRef.current(point);
+        } else {
+          setLocationLoading(false);
+          setLocationError("Live location tracker is still starting. Please try again.");
+        }
+      },
+      error => {
+        setLocationLoading(false);
+        setLocationError(
+          error.code === 1
+            ? "Location permission denied. Allow location access for this site."
+            : error.code === 2
+              ? "Device location is unavailable. Check Windows Location Services."
+              : "Could not get a fresh location. Please try again."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  }
 
   const selectedLanguage = languageOptions.find(item => item.key === languageKey) || languageOptions[0];
   const language = selectedLanguage.code;
-  const t = translations[languageKey] || translations.en;
+
+  // Keep React's source text in English and let the page translator translate
+  // every visible module, including dynamically rendered content and forms.
+  // This avoids translating only the small set of labels in the old dictionary.
+  const t = translations.en;
+
+  // Local UI translation: no hidden third-party widget or API key is required.
+  // React-rendered text and newly-mounted module content are translated from
+  // the bundled phrase dictionary; user-entered values and farm names are left alone.
+  useEffect(() => {
+    const dictionaries = UI_TRANSLATIONS[languageKey] || UI_TRANSLATIONS.en;
+    const translateElement = root => {
+      if (!root) return;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach(node => {
+        const parent = node.parentElement;
+        if (!parent || parent.closest('script,style,textarea,input,select,option,[contenteditable="true"],.user-entered,.chat-message')) return;
+        const original = node.nodeValue;
+        const trimmed = original.trim();
+        if (!trimmed) return;
+        const translated = dictionaries[trimmed];
+        if (translated && translated !== trimmed) {
+          const leading = original.match(/^\s*/)?.[0] || '';
+          const trailing = original.match(/\s*$/)?.[0] || '';
+          node.nodeValue = leading + translated + trailing;
+        }
+      });
+      root.querySelectorAll?.('input[placeholder],textarea[placeholder],[aria-label],[title]').forEach(el => {
+        ['placeholder','aria-label','title'].forEach(attr => {
+          const value = el.getAttribute(attr);
+          if (value && dictionaries[value]) el.setAttribute(attr, dictionaries[value]);
+        });
+      });
+    };
+    const appRoot = document.querySelector('.app-shell') || document.body;
+    translateElement(appRoot);
+    const observer = new MutationObserver(records => {
+      records.forEach(record => {
+        if (record.type === 'characterData') {
+          const node = record.target;
+          const value = node.nodeValue?.trim();
+          if (value && dictionaries[value] && !node.parentElement?.closest('input,textarea,select,option,.chat-message')) node.nodeValue = node.nodeValue.replace(value, dictionaries[value]);
+        }
+        record.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) translateElement(node);
+          else if (node.nodeType === Node.TEXT_NODE) {
+            const value = node.nodeValue?.trim();
+            if (value && dictionaries[value] && !node.parentElement?.closest('input,textarea,select,option,.chat-message')) node.nodeValue = node.nodeValue.replace(value, dictionaries[value]);
+          }
+        });
+      });
+    });
+    observer.observe(appRoot, { childList: true, characterData: true, subtree: true });
+    return () => observer.disconnect();
+  }, [languageKey, active]);
 
   useEffect(() => { localStorage.setItem("agropulse-active-page", active); }, [active]);
   useEffect(() => { localStorage.setItem("agropulse-language", languageKey); }, [languageKey]);
@@ -1766,6 +2443,35 @@ export default function App() {
   const filteredNavigation = navigation.filter(item => item.name.toLowerCase().includes(search.toLowerCase()));
 
   return <div className={`app-shell ${mode === "farmer" ? "farmer-mode" : "technical-mode"}`}>
+    <style>{`
+      .app-shell select {
+        color: #f4f8f4 !important;
+        background-color: #102019 !important;
+        border: 1px solid #45634f !important;
+        border-radius: 9px !important;
+        min-height: 40px;
+        padding: 8px 34px 8px 12px !important;
+        color-scheme: dark;
+        font: inherit;
+        line-height: 1.35;
+        max-width: 100%;
+        outline: none;
+      }
+      .app-shell select:focus {
+        border-color: #a8e83f !important;
+        box-shadow: 0 0 0 2px rgba(168, 232, 63, 0.18);
+      }
+      .app-shell select option {
+        color: #f4f8f4 !important;
+        background: #102019 !important;
+      }
+      .app-shell select:disabled {
+        color: #9eafa3 !important;
+        background-color: #17271e !important;
+        opacity: 0.75;
+      }
+    `}</style>
+    <GoogleTranslateRuntime language={languageKey} />
     {sidebarOpen && <div className="mobile-overlay" onClick={() => setSidebarOpen(false)} />}
 
     <aside className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`}>
@@ -1898,6 +2604,10 @@ export default function App() {
           language={language}
           t={t}
           locationName={locationName}
+          deviceWeather={deviceWeather}
+          locationError={locationError}
+          locationLoading={locationLoading}
+          refreshDeviceLocation={refreshDeviceLocation}
           user={user}
           languageKey={languageKey}
           setLanguageKey={setLanguageKey}

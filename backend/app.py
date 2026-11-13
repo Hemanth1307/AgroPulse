@@ -1,4 +1,3 @@
-
 import io
 import json
 import threading
@@ -22,13 +21,14 @@ from reportlab.platypus import (
 from integrations.gemini_ai import (
     analyze_crop_image,
     ask_farmer_question,
+    ask_farmer_question_with_context,
     extract_npk_from_soil_report
 )
 from integrations.sentinel2 import get_sentinel2_data
 from integrations.nasa_smap import get_smap_data
 from integrations.open_meteo import get_weather_data
 
-from database import init_db
+from database import init_db, get_db_connection
 from functions import (
     add_farm,
     get_all_farms,
@@ -568,6 +568,98 @@ def irrigation_control(farm_id):
         }), 500
 
 
+
+
+# --------------------------------------------------
+# CROP HEALTH TRACKER: DATABASE RECORDS
+# --------------------------------------------------
+
+@app.route("/api/crop-health", methods=["GET"])
+def get_crop_health():
+    farm_id = request.args.get("farm_id", type=int)
+    if not farm_id:
+        return jsonify({"success": False, "message": "A valid farm_id is required."}), 400
+
+    conn = get_db_connection()
+    try:
+        farm = conn.execute(
+            "SELECT id, farm_name, crop_name FROM farms WHERE id = ?", (farm_id,)
+        ).fetchone()
+        if farm is None:
+            return jsonify({"success": False, "message": "Farm not found."}), 404
+
+        rows = conn.execute("""
+            SELECT id, farm_id, variety, growth_stage, health_score, notes, created_at
+            FROM crop_health_records
+            WHERE farm_id = ?
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT 50
+        """, (farm_id,)).fetchall()
+        records = [dict(row) for row in rows]
+        latest = records[0] if records else None
+
+        return jsonify({
+            "success": True,
+            "farm": dict(farm),
+            "profile": {
+                "variety": latest.get("variety") if latest else None,
+                "growth_stage": latest.get("growth_stage") if latest else None,
+            },
+            "records": records,
+        }), 200
+    except Exception:
+        app.logger.exception("Failed to retrieve crop health records")
+        return jsonify({"success": False, "message": "Unable to retrieve crop health records."}), 500
+    finally:
+        conn.close()
+
+
+@app.route("/api/crop-health", methods=["POST"])
+def create_crop_health_record():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"success": False, "message": "Valid JSON request data is required."}), 400
+
+    try:
+        farm_id = int(data.get("farm_id"))
+        health_score = int(data.get("health_score"))
+        if not 0 <= health_score <= 100:
+            raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "farm_id and health_score (0–100) are required."}), 400
+
+    variety = str(data.get("variety") or "").strip()[:120]
+    growth_stage = str(data.get("growth_stage") or "").strip()[:120]
+    notes = str(data.get("notes") or "").strip()[:1000]
+
+    conn = get_db_connection()
+    try:
+        farm = conn.execute("SELECT id FROM farms WHERE id = ?", (farm_id,)).fetchone()
+        if farm is None:
+            return jsonify({"success": False, "message": "Farm not found."}), 404
+
+        cursor = conn.execute("""
+            INSERT INTO crop_health_records
+                (farm_id, variety, growth_stage, health_score, notes)
+            VALUES (?, ?, ?, ?, ?)
+        """, (farm_id, variety or None, growth_stage or None, health_score, notes or None))
+        conn.commit()
+        row = conn.execute("""
+            SELECT id, farm_id, variety, growth_stage, health_score, notes, created_at
+            FROM crop_health_records WHERE id = ?
+        """, (cursor.lastrowid,)).fetchone()
+        return jsonify({
+            "success": True,
+            "message": "Crop health observation saved.",
+            "record": dict(row),
+        }), 201
+    except Exception:
+        app.logger.exception("Failed to save crop health record")
+        return jsonify({"success": False, "message": "Unable to save crop health record."}), 500
+    finally:
+        conn.close()
+
+
 # --------------------------------------------------
 # CROP DOCTOR: AI IMAGE ANALYSIS
 # --------------------------------------------------
@@ -926,62 +1018,27 @@ def smap_data():
 @app.route("/api/farmer-assistant", methods=["POST"])
 def farmer_assistant():
     data = request.get_json(silent=True)
-
     if not isinstance(data, dict):
-        return jsonify({
-            "success": False,
-            "message": "Please send your question as JSON.",
-        }), 400
-
+        return jsonify({"success": False, "message": "Please send your question as JSON."}), 400
     question = data.get("question", "")
-
     if not isinstance(question, str) or not question.strip():
-        return jsonify({
-            "success": False,
-            "message": "Please enter your farming question.",
-        }), 400
-
-    question = question.strip()
-
+        return jsonify({"success": False, "message": "Please enter a farming question or attach a file."}), 400
     if len(question) > 4000:
-        return jsonify({
-            "success": False,
-            "message": (
-                "Please keep your question under 4000 characters."
-            ),
-        }), 400
-
+        return jsonify({"success": False, "message": "Please keep your question under 4000 characters."}), 400
     try:
-        answer = ask_farmer_question(question)
-
+        answer = ask_farmer_question_with_context(
+            question,
+            history=data.get("history", []),
+            attachments=data.get("attachments", []),
+        )
         if not isinstance(answer, str) or not answer.strip():
-            app.logger.error(
-                "Gemini returned an empty or invalid answer."
-            )
-
-            return jsonify({
-                "success": False,
-                "message": (
-                    "The AI returned an empty answer. "
-                    "Please try again."
-                ),
-            }), 502
-
-        return jsonify({
-            "success": True,
-            "answer": answer.strip(),
-        }), 200
-
+            return jsonify({"success": False, "message": "The AI returned an empty answer. Please try again."}), 502
+        return jsonify({"success": True, "answer": answer.strip()}), 200
+    except ValueError as exc:
+        return jsonify({"success": False, "message": str(exc)}), 400
     except Exception:
         app.logger.exception("Farmer Assistant Gemini request failed")
-
-        return jsonify({
-            "success": False,
-            "message": (
-                "Unable to generate an answer. Check the Gemini "
-                "API key, model configuration, and backend terminal."
-            ),
-        }), 500
+        return jsonify({"success": False, "message": "Unable to generate an answer. Check the Gemini API key, model configuration, and backend terminal."}), 500
 
 
 # --------------------------------------------------

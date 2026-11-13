@@ -1,4 +1,3 @@
-
 const BASE_URL = "https://api.open-meteo.com/v1";
 const GEO_URL = "https://geocoding-api.open-meteo.com/v1";
 const REVERSE_GEO_URL =
@@ -68,12 +67,11 @@ export async function getWeather(latitude, longitude) {
   return apiRequest(`${BASE_URL}/forecast?${params.toString()}`);
 }
 
-// Convert device GPS coordinates into the most specific available place name.
+// Convert GPS coordinates into a place name.
 async function getLocationName(latitude, longitude) {
   const lat = Number(latitude);
   const lon = Number(longitude);
 
-  // First try OpenStreetMap for a more specific locality.
   try {
     const params = new URLSearchParams({
       lat: String(lat),
@@ -174,11 +172,21 @@ export async function getCurrentLocation() {
       resolve,
       (error) => {
         if (error.code === 1) {
-          reject(new Error("Location permission denied. Allow browser location access."));
+          reject(
+            new Error(
+              "Location permission denied. Allow browser location access."
+            )
+          );
         } else if (error.code === 2) {
-          reject(new Error("Your device location is unavailable. Check Windows location services."));
+          reject(
+            new Error(
+              "Your device location is unavailable. Check Windows location services."
+            )
+          );
         } else {
-          reject(new Error("Location request timed out. Please try again."));
+          reject(
+            new Error("Location request timed out. Please try again.")
+          );
         }
       },
       {
@@ -205,7 +213,9 @@ export async function getCurrentLocation() {
 // Continuously track the device's GPS location.
 export function watchCurrentLocation(onLocation, onError) {
   if (!("geolocation" in navigator)) {
-    onError?.(new Error("Your browser does not support GPS location detection."));
+    onError?.(
+      new Error("Your browser does not support GPS location detection.")
+    );
     return () => {};
   }
 
@@ -289,28 +299,25 @@ export async function detectCropDisease(imageFile) {
 }
 
 // Farmer chatbot connected to the Flask backend.
-export async function askFarmerAssistant(question) {
-  if (typeof question !== "string" || !question.trim()) {
-    throw new Error("Please enter your question.");
-  }
-
-  let response;
-
-  try {
-    response = await fetch(`${BACKEND_URL}/api/farmer-assistant`, {
+export async function askFarmerAssistant(question, options = {}) {
+  const response = await fetch(
+    `${BACKEND_URL}/api/farmer-assistant`,
+    {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        question: question.trim(),
+        question: String(question || "").trim(),
+        history: Array.isArray(options.history)
+          ? options.history
+          : [],
+        attachments: Array.isArray(options.files)
+          ? options.files
+          : [],
       }),
-    });
-  } catch {
-    throw new Error(
-      "Cannot connect to the AgroPulse backend. Make sure Flask is running on port 5000."
-    );
-  }
+    }
+  );
 
   let data;
 
@@ -320,15 +327,11 @@ export async function askFarmerAssistant(question) {
     throw new Error("The backend returned an invalid response.");
   }
 
-  if (!response.ok || !data.success) {
+  if (!response.ok || data?.success === false) {
     throw new Error(
-      data.message || "Unable to get an AI response. Please try again."
+      data?.message || `Request failed (${response.status}).`
     );
   }
 
-  if (typeof data.answer !== "string" || !data.answer.trim()) {
-    throw new Error("The AI returned an empty answer. Please try again.");
-  }
-
-  return data.answer.trim();
+  return data.answer || "";
 }

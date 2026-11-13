@@ -1880,3 +1880,31 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* =========================================
+   AGROPULSE CHATBOT UPGRADE
+========================================= */
+.ag-chat-shell { padding: 20px; }
+.ag-chat-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.ag-chat-layout { display:grid; grid-template-columns:230px minmax(0,1fr); gap:16px; }
+.ag-chat-history { min-width:0; padding:13px; border:1px solid rgba(190,220,190,.1); border-radius:13px; background:#101c14; }
+.ag-chat-history-title { color:#a3e635; font-size:11px; font-weight:800; margin-bottom:12px; text-transform:uppercase; letter-spacing:.8px; }
+.ag-chat-history-row { display:flex; align-items:center; gap:5px; padding:5px; border-radius:9px; margin-bottom:5px; background:rgba(255,255,255,.025); }
+.ag-chat-history-row.active { background:rgba(163,230,53,.12); }
+.ag-chat-history-row>button:first-child { flex:1; min-width:0; border:0; background:transparent; color:#dce8dc; text-align:left; font-size:11px; overflow-wrap:anywhere; padding:6px; }
+.ag-chat-history-row small { display:block; color:#788a7b; margin-top:4px; font-size:9px; }
+.ag-chat-history-row>button:last-child,.ag-chat-pending-files button { border:0; background:transparent; color:#91a095; padding:6px; cursor:pointer; }
+.ag-chat-muted,.ag-chat-hint { color:#819185; font-size:10px; line-height:1.5; }
+.ag-chat-main { min-width:0; }
+.ag-chat-messages { min-height:360px; max-height:560px; overflow-y:auto; }
+.ag-chat-composer { gap:8px; }
+.ag-chat-composer>input[type="text"],.ag-chat-composer>input:not([type]) { min-width:0; flex:1; }
+.ag-chat-composer>button { flex-shrink:0; }
+.ag-chat-file-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.ag-chat-file { display:flex; align-items:center; gap:8px; max-width:220px; padding:7px; border:1px solid rgba(190,220,190,.12); border-radius:9px; color:#b8c6b9; font-size:10px; }
+.ag-chat-file img { width:52px; height:42px; object-fit:cover; border-radius:6px; }
+.ag-chat-file span { overflow-wrap:anywhere; }
+.ag-chat-pending-files { display:flex; flex-wrap:wrap; gap:8px; padding:10px 0; }
+.ag-chat-pending-files>div { display:flex; align-items:center; gap:8px; padding:6px 9px; border:1px solid rgba(163,230,53,.25); border-radius:8px; color:#dce8dc; font-size:10px; }
+@media(max-width:850px) { .ag-chat-layout { grid-template-columns:1fr; } .ag-chat-history { max-height:190px; overflow-y:auto; } .ag-chat-top { align-items:center; } }
+@media(max-width:520px) { .ag-chat-shell { padding:13px; } .ag-chat-composer { flex-wrap:wrap; } .ag-chat-composer>input:not([type="file"]) { flex-basis:calc(100% - 110px); } .ag-chat-top { flex-direction:column; } }
